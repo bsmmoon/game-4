@@ -6,6 +6,14 @@
     "format_version": "0.1-proto",
     "scope": "Prototype subset: the night of Julia's death only."
   },
+  "briefing": [
+    { "focus": [], "text": "Baker Street, April 1883. A young woman arrives at dawn, shaking. Not from the cold, she says, but from terror. Her name is Helen Stoner." },
+    { "focus": ["roylott_room", "middle_room", "helen_room"], "text": "Helen lives at Stoke Moran, a crumbling manor, with her stepfather Dr. Grimesby Roylott, a violent man. Their three bedrooms sit side by side along one corridor." },
+    { "focus": ["middle_room"], "text": "Two years ago her twin sister Julia, two weeks before her wedding, died in the middle bedroom. Helen heard her scream in the night, and Julia died within minutes." },
+    { "focus": ["middle_room"], "text": "The door was locked from the inside. The window shutters were barred. The coroner found no wound and no poison. No one could say what killed her." },
+    { "focus": ["middle_room"], "text": "Now Helen is engaged herself, and has been moved into Julia's old room. Last night she heard a low whistle, the same sound Julia heard before she died." },
+    { "focus": [], "text": "Your case: what killed Julia Stoner, who was behind it, and how did it get into a locked room?\n\nHear Helen's testimony, search the house, then Solve. The truth tab replays the real night, so save it for last." }
+  ],
   "verbs": ["move", "lock", "unlock", "open", "sleep", "wake", "light", "climb", "release", "descend", "bite", "strike_match", "scream", "whistle", "shut", "speak", "point", "collapse"],
   "locations": [
     { "id": "roylott_room", "name": "Roylott's room", "light": "dark",

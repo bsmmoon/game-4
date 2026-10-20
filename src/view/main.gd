@@ -17,8 +17,8 @@ const MapView = preload("res://src/view/map_view.gd")
 const CASE_DIR := "res://cases/speckled-band/"
 const WITNESS := "helen"
 const PLAY_SECONDS := 1.8
-const MODES := ["truth", "testimony", "investigate", "solve"]
-const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate", "solve": "Solve", "explain": "Holmes explains" }
+const MODES := ["brief", "testimony", "investigate", "solve", "truth"]
+const MODE_NAMES := { "brief": "The case", "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate", "solve": "Solve", "explain": "Holmes explains" }
 const SEARCH_ROOMS := ["middle_room", "roylott_room"]
 
 var data
@@ -29,8 +29,8 @@ var investigation
 var deduction
 var layout: Dictionary = {}
 
-var mode := "truth"   # one of MODES
-var steps: Array = [] # truth: event indices; testimony: claim dicts; investigate: room ids
+var mode := "brief"   # one of MODES, or "explain"
+var steps: Array = [] # brief: pages; truth: event indices; testimony: claim dicts; investigate: room ids
 var step := 0
 var playing := false
 var _play_t := 0.0
@@ -39,7 +39,9 @@ var map: Control
 var title: Label
 var caption: Label
 var slider: HSlider
-var mode_btn: Button
+var mode_label: Label
+var mode_prev: Button
+var mode_next: Button
 var play_btn: Button
 var prev_btn: Button
 var next_btn: Button
@@ -59,7 +61,7 @@ func _ready() -> void:
 	investigation = Investigation.new(data)
 	deduction = Deduction.new(data, investigation)
 	_build_ui()
-	_set_mode("truth")
+	_set_mode("brief")
 
 
 func _build_ui() -> void:
@@ -80,8 +82,22 @@ func _build_ui() -> void:
 	title = _label(24)
 	title.clip_text = true
 	box.add_child(title)
-	mode_btn = _button("", func(): _set_mode(MODES[(MODES.find(mode) + 1) % MODES.size()]))
-	box.add_child(mode_btn)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 12)
+	mode_prev = _button("<", func(): _step_mode(-1))
+	mode_prev.size_flags_horizontal = Control.SIZE_FILL
+	mode_prev.custom_minimum_size.x = 96
+	tabs.add_child(mode_prev)
+	mode_label = _label(22)
+	mode_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mode_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tabs.add_child(mode_label)
+	mode_next = _button(">", func(): _step_mode(1))
+	mode_next.size_flags_horizontal = Control.SIZE_FILL
+	mode_next.custom_minimum_size.x = 96
+	tabs.add_child(mode_next)
+	box.add_child(tabs)
 
 	map = MapView.new()
 	map.layout = layout
@@ -158,7 +174,9 @@ func _set_mode(m: String) -> void:
 	steps.clear()
 	_notes_open = false
 	selected = ""
-	if mode == "truth":
+	if mode == "brief":
+		steps = data.raw.get("briefing", []).duplicate()
+	elif mode == "truth":
 		for i in timeline.size():
 			steps.append(i)
 	elif mode == "testimony":
@@ -171,10 +189,12 @@ func _set_mode(m: String) -> void:
 			steps.append(q.id)
 	else:
 		steps = deduction.explanation.duplicate()
-	var next: String = MODES[(MODES.find(mode) + 1) % MODES.size()]
-	mode_btn.text = "%s  |  tap: %s" % [MODE_NAMES[mode], MODE_NAMES[next]]
+	var at := _mode_index()
+	mode_label.text = "%d/%d  %s" % [at + 1, MODES.size(), MODE_NAMES[mode]]
+	mode_prev.disabled = at == 0
+	mode_next.disabled = at == MODES.size() - 1
 	var searching := mode == "investigate"
-	slider.visible = mode in ["truth", "testimony", "explain"]
+	slider.visible = mode in ["brief", "truth", "testimony", "explain"]
 	prev_btn.text = "< Room" if searching else "< Prev"
 	next_btn.text = "Room >" if searching else "Next >"
 	play_btn.text = "Play"
@@ -182,6 +202,18 @@ func _set_mode(m: String) -> void:
 	step = -1
 	slider.set_value_no_signal(0)
 	_show(0)
+
+
+## Tabs run in a line, not a loop: no wrapping past the first or last.
+## Holmes explains sits in Solve's place.
+func _mode_index() -> int:
+	return MODES.find("solve" if mode == "explain" else mode)
+
+
+func _step_mode(dir: int) -> void:
+	var i := _mode_index() + dir
+	if i >= 0 and i < MODES.size():
+		_set_mode(MODES[i])
 
 
 func _go(dir: int) -> void:
@@ -231,7 +263,9 @@ func _show(i: int) -> void:
 		return
 	step = i
 	slider.set_value_no_signal(i)
-	if mode == "truth":
+	if mode == "brief":
+		_show_brief(steps[i])
+	elif mode == "truth":
 		_show_truth(steps[i])
 	elif mode == "testimony":
 		_show_claim(steps[i])
@@ -254,6 +288,26 @@ func _layout_for_mode() -> void:
 
 
 # --- frames ---------------------------------------------------------------
+
+## The client's story: the house as it stands, no people, nothing given away.
+func _show_brief(page: Dictionary) -> void:
+	var focus: Array = page.get("focus", [])
+	var start = timeline.state_before(0)
+	var f := { "rooms": {}, "doors": {}, "actors": [], "bubbles": [], "objects": [] }
+	var around: Array = focus if not focus.is_empty() else layout.spots.keys()
+	var c := Vector2.ZERO
+	for id in around:
+		c += _spot(id)
+	f.center = c / around.size()
+	for id in layout.rooms:
+		f.rooms[id] = { "lit": true, "known": true, "focus": focus.has(id), "name": data.locations[id].name }
+	for oid in start.objects:
+		if start.objects[oid].has("door") and oid.begins_with("door_"):
+			f.doors[oid] = start.objects[oid].door
+	title.text = "%s  %d/%d" % [data.raw.meta.title, step + 1, steps.size()]
+	caption.text = page.text
+	map.set_frame(f)
+
 
 func _show_truth(ei: int) -> void:
 	map.set_frame(_truth_frame(ei))

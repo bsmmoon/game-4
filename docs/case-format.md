@@ -17,6 +17,7 @@ Drafted from *The Speckled Band* digest (Phase 4 of `case-digestion`). Each new 
 ```
 case.json
 ├── meta          id, title, source, version, difficulty
+├── briefing      the client's story: pages the player reads first
 ├── verbs         action verbs this case uses (from the global registry)
 ├── locations     places, plus connections between them
 ├── objects       things in locations: states, inspect results, tests
@@ -32,6 +33,14 @@ case.json
 ```
 
 ## Sections
+
+### `briefing`
+
+The opening tab. Pages of `{ focus, text }`: `text` is what the client tells
+the detective, `focus` lists rooms to highlight on the house map (empty means
+the whole house). It sets up the question without giving away the answer, so
+it must say only what the client knows. The last page states what the player
+has to solve.
 
 ### `locations`
 ```json
