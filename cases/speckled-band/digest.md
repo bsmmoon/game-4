@@ -36,7 +36,7 @@ Phase 3 of `case-digestion`. Written from `extraction.md` only. Clue IDs (C#), r
 - **(a) Keep the whistle and milk,** but make the creature fictional ("the swamp adder"), with its properties written in the in-game reference. This is fair, because the player is told the rule.
 - **(b) Use real behaviour:** snakes sense vibration, so Roylott taps the ventilator grate. Helen's "metallic clang" then becomes the recall signal. The milk becomes water, or a warm brick to draw the snake back.
 
-Trucy prefers (a): it keeps the iconic whistle, and the in-game reference becomes a reusable mechanic (M8).
+**Decision (2026-10-20): (a).** Moon left the choice to Trucy, who picked it because it keeps the iconic whistle and turns the in-game reference into a reusable mechanic (M8).
 
 **Story slips to fix in our version:** the twins' ages against the timeline, and the income figures (£1000 vs ~£1,100). Pick one consistent set.
 
