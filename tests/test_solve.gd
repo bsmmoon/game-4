@@ -20,6 +20,7 @@ func _initialize():
 	m._test_selected()
 	m._set_mode("solve")
 	await _frames(5)
+	await _drag_list()
 	await _tap("The gipsies on the lawn")
 	await _tap("Submit")
 	_check("shutters" in m.caption.text, "wrong suspect gets the shutters hint")
@@ -57,6 +58,41 @@ func _frames(n: int) -> void:
 
 
 ## Taps the first visible button with this text, through the input path.
+## A finger drag that starts on a clue button scrolls the list, picks nothing.
+func _drag_list() -> void:
+	var scroll = m.solve_box.get_parent()
+	Input.emulate_touch_from_mouse = true
+	var p := Vector2.ZERO
+	for b in m.solve_box.get_children():
+		if b is Button and scroll.get_global_rect().encloses(b.get_global_rect()):
+			p = b.get_global_rect().get_center()
+	_check(p != Vector2.ZERO, "a clue button to drag from")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	ev.position = p
+	root.push_input(ev, true)
+	await process_frame
+	for i in 10:
+		p.y -= 30
+		var mv := InputEventMouseMotion.new()
+		mv.position = p
+		mv.relative = Vector2(0, -30)
+		mv.button_mask = MOUSE_BUTTON_MASK_LEFT
+		root.push_input(mv, true)
+		await process_frame
+	ev = ev.duplicate()
+	ev.pressed = false
+	ev.position = p
+	root.push_input(ev, true)
+	await _frames(3)
+	Input.emulate_touch_from_mouse = false
+	_check(scroll.scroll_vertical > 50, "drag from a button scrolls the list (%d)" % scroll.scroll_vertical)
+	_check(m._backing.get("culprit", []).is_empty(), "a drag picks no clue")
+	scroll.scroll_vertical = 0
+	await _frames(2)
+
+
 func _tap(text: String) -> void:
 	var b := _find(m, text)
 	if b == null:

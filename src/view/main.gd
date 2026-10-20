@@ -50,6 +50,7 @@ var notebook: Label
 var solve_box: VBoxContainer
 var selected := ""
 var _notes_open := false
+var _scroll_at_down := 0
 
 
 func _ready() -> void:
@@ -506,8 +507,17 @@ func _build_question(q: Dictionary) -> void:
 		solve_box.add_child(b)
 
 
+## Solve-list buttons pass touches on to the scroll box, so a drag that
+## starts on a button still scrolls, and a drag never counts as a pick.
 func _toggle(text: String, on: bool, cb: Callable) -> Button:
-	var b := _button(text, cb)
+	var scroll: ScrollContainer = solve_box.get_parent()
+	var b := _button(text, func():
+		if abs(scroll.scroll_vertical - _scroll_at_down) > 8:
+			_build_question(deduction.question(steps[step]))
+		else:
+			cb.call())
+	b.mouse_filter = Control.MOUSE_FILTER_PASS
+	b.button_down.connect(func(): _scroll_at_down = scroll.scroll_vertical)
 	b.toggle_mode = true
 	b.set_pressed_no_signal(on)
 	b.modulate = Color("#ffd75e") if on else Color.WHITE
