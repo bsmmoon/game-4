@@ -91,3 +91,7 @@ python3 /home/seokmin/Agents/ledger/ledger_cli.py log "<summary>" -d game-4-desi
 ```
 
 Make one entry for the digest summary and one entry for each new mechanic (tag `mechanic`). Log Moon's decisions with `-a Moon`.
+
+- Before logging a mechanic, check the existing ones with `ledger_cli.py query -d game-4-design -t mechanic`. If the mechanic is already logged, log only what this case adds to it.
+- If the Phase 3 completion entry already summarizes the digest, don't log the summary again.
+- To log many entries, loop over a heredoc with one `log` call per line.
