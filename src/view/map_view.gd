@@ -65,6 +65,23 @@ func _gui_input(ev: InputEvent) -> void:
 			var d: Vector2 = ev.position - _press
 			if abs(d.x) > 60 and abs(d.x) > abs(d.y):
 				swiped.emit(-1 if d.x > 0 else 1)
+			elif d.length() < 20:
+				var oid := object_at(ev.position)
+				if oid != "":
+					tapped_object.emit(oid)
+
+
+## Nearest tappable object to a point (local coords), within a finger's reach.
+func object_at(p: Vector2) -> String:
+	var best := ""
+	var best_d: float = max(44.0, _k * 0.3)
+	for oid in frame.get("marks", {}):
+		if layout.objects.has(oid):
+			var d := iso(Vector2(layout.objects[oid].x, layout.objects[oid].y)).distance_to(p)
+			if d < best_d:
+				best_d = d
+				best = oid
+	return best
 
 
 # --- projection -----------------------------------------------------------
