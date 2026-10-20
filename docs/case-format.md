@@ -1,4 +1,4 @@
-# Case Format — v0.1 (draft)
+# Case Format — v0.2 (draft)
 
 Drafted from *The Speckled Band* digest (Phase 4 of `case-digestion`). Each new case is checked against this format, and changes need Moon's approval.
 
@@ -89,7 +89,9 @@ Animals are actors too (`"kind": "animal"`, plus a `size` class used by `travers
   "source": { "type": "inspect", "object": "chair_roylott" },
   "available": { "after": ["enter:roylott_room"] }, "core": true }
 ```
-`source.type` is one of `inspect`, `test`, `testimony`, `document`, `reference`, `observe_person` or `stakeout`. `core: false` marks flavour clues (e.g. Holmes reading Helen's sleeve).
+`source.type` is one of `inspect`, `test`, `testimony`, `document`, `reference`, `observe_person` or `stakeout`. `core: false` marks flavour clues (e.g. Holmes reading Helen's sleeve). Every clue has a short `title` for the notebook and the Solve screen.
+
+v0.2 (built): a `reference` clue also names its `reference` and is revealed by inspecting `object` (the book). A `testimony` clue names `witness` and `event`, and is noted when the player hears that claim. The checker requires the witness to actually make that claim.
 
 ### `references`
 ```json
@@ -105,6 +107,20 @@ Animals are actors too (`"kind": "animal"`, plus a `size` class used by `travers
 ```
 
 ### `deduction`
+v0.2 (built, replaces the event-card sketch below for now):
+```json
+{ "pick": 2, "closing": "Dr. Roylott sent a trained swamp adder...",
+  "questions": [
+    { "id": "culprit", "ask": "Who killed Julia?",
+      "options": [ { "id": "roylott", "text": "Dr. Roylott", "correct": true },
+                   { "id": "gipsies", "text": "The gipsies", "hypothesis": "H_gipsies",
+                     "hint": "How would anyone outside get in? Look at the shutters..." } ],
+      "evidence": ["C_vent_inner", "C_chair_marks", "..."],
+      "explain": "Only Roylott's room connects to Julia's..." } ] }
+```
+The player picks an option and backs it with `pick` found clues from `evidence`. A wrong option shows its `hint`; the right option with weak backing says how many picked clues count. Nothing is ever a game over. The checker requires exactly one correct option per question, a hint on every wrong option, at least `pick` evidence clues that are core and findable by a simulated thorough player, and findable `refuted_by` clues for every hypothesis.
+
+v0.1 sketch (event cards, not built yet):
 ```json
 { "questions": ["culprit", "method", "motive", "proof"],
   "solution": [ { "actor": "roylott", "verb": "release", "target": "adder", "place": "ventilator" }, "..." ],

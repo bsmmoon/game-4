@@ -6,6 +6,7 @@ const Timeline = preload("res://src/core/timeline.gd")
 const Perception = preload("res://src/core/perception.gd")
 const Testimony = preload("res://src/core/testimony.gd")
 const Investigation = preload("res://src/core/investigation.gd")
+const Deduction = preload("res://src/core/deduction.gd")
 
 var failures := 0
 
@@ -42,8 +43,8 @@ func _init() -> void:
 
 	var inv = Investigation.new(data)
 	_eq(inv.validate(), [], "clue data is consistent")
-	_eq(inv.inspectables().size(), 8, "eight inspectable objects")
-	_eq(inv.core_total(), 9, "nine core clues")
+	_eq(inv.inspectables().size(), 9, "nine inspectable objects")
+	_eq(inv.core_total(), 15, "fifteen core clues")
 	var r: Array = inv.inspect("bell_rope")
 	_eq(r.size(), 1, "rope gives one inspect clue")
 	_true(r[0].new and r[0].clue.id == "C_rope_dummy", "rope inspect reveals the dummy rope")
@@ -65,6 +66,26 @@ func _init() -> void:
 	_eq(gi.inspect("box").size(), 1, "gated clue hidden until its requirement is found")
 	_eq(gi.inspect("box").size(), 2, "gated clue shows once requirement found")
 	_eq(gi.validate().size(), 1, "validator catches an unreachable clue")
+
+	var heard: Array = inv.hear("helen", "E19")
+	_true(heard.size() == 1 and heard[0].clue.id == "C_band", "hearing a claim notes the clue")
+	_eq(inv.hear("helen", "E21"), [], "a claim with no clue gives nothing")
+	_eq(inv.inspect("fauna_book")[0].clue.id, "C_ref_adder", "book reveals the adder reference")
+
+	var dd = Deduction.new(data, inv)
+	_eq(dd.validate(), [], "every question is answerable from findable clues")
+	_eq(dd.answer("culprit", "gipsies", []).verdict, "wrong", "wrong suspect gets a hint")
+	_true("shutters" in dd.answer("culprit", "gipsies", []).text, "gipsies hint points at the shutters")
+	_eq(dd.answer("path", "vent", ["C_rope_dummy", "C_band"]).verdict, "weak", "one backing clue is not enough")
+	_eq(dd.answer("path", "vent", ["C_rope_dummy", "C_bed_clamped"]).verdict, "weak", "unfound clues don't count")
+	_eq(dd.answer("path", "vent", ["C_rope_dummy", "C_rope_no_bell"]).verdict, "solved", "two found backing clues solve it")
+	_true(not dd.all_solved(), "one of three questions solved")
+
+	var unfair = CaseData.new()
+	unfair._index({ "objects": [], "clues": [{ "id": "X", "text": "x", "core": true, "source": { "type": "inspect", "object": "nowhere" } }],
+		"deduction": { "pick": 1, "questions": [{ "id": "q", "ask": "?", "evidence": ["X"],
+			"options": [{ "id": "a", "correct": true }, { "id": "b" }] }] } })
+	_eq(Deduction.new(unfair, Investigation.new(unfair)).validate().size(), 3, "validator catches unfindable evidence, too few clues, missing hint")
 
 	print("FAILURES: %d" % failures if failures else "ALL TESTS PASSED")
 	quit(1 if failures else 0)

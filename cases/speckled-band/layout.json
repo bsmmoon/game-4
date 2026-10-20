@@ -15,6 +15,7 @@
     "safe":          { "x": 1.0, "y": 0.8 },
     "lantern":       { "x": 2.5, "y": 2.0 },
     "saucer":        { "x": 1.5, "y": 0.6 },
+    "fauna_book":    { "x": 0.6, "y": 2.8 },
     "dog_lash":      { "x": 3.2, "y": 2.8 },
     "shutter_middle": { "x": 8.0, "y": 0.2 },
     "door_roylott":  { "x": 2.5, "y": 4.0 },

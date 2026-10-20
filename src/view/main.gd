@@ -1,7 +1,8 @@
 ## Prototype screen (portrait phone). Asks the core for state and perception,
 ## turns it into a frame for MapView. Two modes: the true night, or Helen's
 ## testimony replayed with only what she perceived (guesses as ghosts), or the
-## present-day investigation: tap objects to find clues for the notebook.
+## present-day investigation: tap objects to find clues for the notebook,
+## or solving: answer the case's questions, backing each with found clues.
 extends Control
 
 const CaseData = preload("res://src/core/case_data.gd")
@@ -9,13 +10,14 @@ const Timeline = preload("res://src/core/timeline.gd")
 const Perception = preload("res://src/core/perception.gd")
 const Testimony = preload("res://src/core/testimony.gd")
 const Investigation = preload("res://src/core/investigation.gd")
+const Deduction = preload("res://src/core/deduction.gd")
 const MapView = preload("res://src/view/map_view.gd")
 
 const CASE_DIR := "res://cases/speckled-band/"
 const WITNESS := "helen"
 const PLAY_SECONDS := 1.8
-const MODES := ["truth", "testimony", "investigate"]
-const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate" }
+const MODES := ["truth", "testimony", "investigate", "solve"]
+const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate", "solve": "Solve" }
 const SEARCH_ROOMS := ["middle_room", "roylott_room"]
 
 var data
@@ -23,6 +25,7 @@ var timeline
 var perception
 var testimony
 var investigation
+var deduction
 var layout: Dictionary = {}
 
 var mode := "truth"   # one of MODES
@@ -41,6 +44,7 @@ var prev_btn: Button
 var next_btn: Button
 var action_btn: Button
 var notebook: Label
+var solve_box: VBoxContainer
 var selected := ""
 var _notes_open := false
 
@@ -52,6 +56,7 @@ func _ready() -> void:
 	perception = Perception.new(data)
 	testimony = Testimony.new(timeline, perception)
 	investigation = Investigation.new(data)
+	deduction = Deduction.new(data, investigation)
 	_build_ui()
 	_set_mode("truth")
 
@@ -90,6 +95,16 @@ func _build_ui() -> void:
 	notebook.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	notebook.visible = false
 	box.add_child(notebook)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.visible = false
+	solve_box = VBoxContainer.new()
+	solve_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	solve_box.add_theme_constant_override("separation", 8)
+	scroll.add_child(solve_box)
+	box.add_child(scroll)
 
 	caption = _label(21)
 	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -148,12 +163,15 @@ func _set_mode(m: String) -> void:
 	elif mode == "testimony":
 		var t: Dictionary = _testimony_of(WITNESS)
 		steps = t.claims.duplicate()
-	else:
+	elif mode == "investigate":
 		steps = SEARCH_ROOMS.duplicate()
+	else:
+		for q in deduction.questions:
+			steps.append(q.id)
 	var next: String = MODES[(MODES.find(mode) + 1) % MODES.size()]
 	mode_btn.text = "%s  |  tap: %s" % [MODE_NAMES[mode], MODE_NAMES[next]]
 	var searching := mode == "investigate"
-	slider.visible = not searching
+	slider.visible = mode in ["truth", "testimony"]
 	prev_btn.text = "< Room" if searching else "< Prev"
 	next_btn.text = "Room >" if searching else "Next >"
 	play_btn.text = "Play"
@@ -177,6 +195,8 @@ func _middle_pressed() -> void:
 	if mode == "investigate":
 		_notes_open = not _notes_open
 		_show_room(_room_shown)
+	elif mode == "solve":
+		_submit()
 	else:
 		_toggle_play()
 
@@ -210,14 +230,17 @@ func _show(i: int) -> void:
 		_show_truth(steps[i])
 	elif mode == "testimony":
 		_show_claim(steps[i])
-	else:
+	elif mode == "investigate":
 		_show_room(steps[i])
+	else:
+		_show_question()
 	_layout_for_mode()
 
 
 func _layout_for_mode() -> void:
 	var searching := mode == "investigate"
-	map.visible = not (searching and _notes_open)
+	map.visible = not (searching and _notes_open) and mode != "solve"
+	solve_box.get_parent().visible = mode == "solve"
 	notebook.visible = searching and _notes_open
 	action_btn.visible = searching and selected != "" and not _notes_open \
 		and not investigation.test_verbs(selected).is_empty()
@@ -262,6 +285,8 @@ func _show_claim(c: Dictionary) -> void:
 					f.bubbles.append({ "tile": here, "text": "(heard) " + em.desc, "kind": em.sense })
 		f.bubbles.append({ "tile": here, "text": c.as, "kind": "speech" })
 		caption.text = "Helen: \"%s\"\nBasis: %s (%s)" % [c.as, basis, ", ".join(senses) if not senses.is_empty() else "nothing!"]
+		for r in investigation.hear(WITNESS, c.event):
+			caption.text += "\n%s %s" % ["Noted:" if r.new else "In notebook:", r.clue.title]
 	else:
 		var last = timeline.state_after(timeline.size() - 1)
 		f = _base_frame({}, last, [], WITNESS)
@@ -351,8 +376,103 @@ func _notebook_text() -> String:
 		return "Notebook\n\nNo clues yet. Inspect the objects marked ?."
 	var lines := ["Notebook  (%d of %d)" % [investigation.core_found(), investigation.core_total()], ""]
 	for id in investigation.found:
-		lines.append("- " + investigation.clues[id].text)
+		var c: Dictionary = investigation.clues[id]
+		lines.append("- %s: %s" % [c.title, c.text])
 	return "\n".join(lines)
+
+
+# --- solve ------------------------------------------------------------------
+
+var _choice := {}      # question id -> picked option id
+var _backing := {}     # question id -> picked clue ids
+var _verdict := ""     # caption for the last submit
+
+
+func _show_question() -> void:
+	var q: Dictionary = deduction.questions[step]
+	_verdict = ""
+	title.text = "Solve  %d of %d solved" % [deduction.solved.size(), deduction.questions.size()]
+	_build_question(q)
+	_solve_caption()
+
+
+func _build_question(q: Dictionary) -> void:
+	for ch in solve_box.get_children():
+		ch.queue_free()
+	var ask := _label(24)
+	ask.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ask.text = "%d. %s" % [step + 1, q.ask]
+	solve_box.add_child(ask)
+	var done: bool = deduction.solved.has(q.id)
+	for o in q.options:
+		var b := _toggle(o.text, _choice.get(q.id, "") == o.id, func(): _pick_option(q.id, o.id))
+		b.disabled = done
+		solve_box.add_child(b)
+	var need := _label(21)
+	need.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	need.text = "\nBack it up: pick %d clues from your notebook." % deduction.pick
+	if investigation.found.is_empty():
+		need.text += "\nYour notebook is empty. Investigate first."
+	solve_box.add_child(need)
+	var picked: Array = _backing.get(q.id, [])
+	for id in investigation.found:
+		var b := _toggle(investigation.clues[id].title, picked.has(id), func(): _pick_clue(q.id, id))
+		b.custom_minimum_size.y = 72
+		b.add_theme_font_size_override("font_size", 21)
+		b.disabled = done
+		solve_box.add_child(b)
+
+
+func _toggle(text: String, on: bool, cb: Callable) -> Button:
+	var b := _button(text, cb)
+	b.toggle_mode = true
+	b.set_pressed_no_signal(on)
+	b.modulate = Color("#ffd75e") if on else Color.WHITE
+	return b
+
+
+func _pick_option(qid: String, oid: String) -> void:
+	_choice[qid] = oid
+	_verdict = ""
+	_build_question(deduction.question(qid))
+	_solve_caption()
+
+
+func _pick_clue(qid: String, cid: String) -> void:
+	var picked: Array = _backing.get(qid, [])
+	if picked.has(cid):
+		picked.erase(cid)
+	else:
+		picked.append(cid)
+	_backing[qid] = picked
+	_verdict = ""
+	_build_question(deduction.question(qid))
+	_solve_caption()
+
+
+func _submit() -> void:
+	var q: Dictionary = deduction.questions[step]
+	if deduction.solved.has(q.id):
+		return
+	var v: Dictionary = deduction.answer(q.id, _choice.get(q.id, ""), _backing.get(q.id, []))
+	_verdict = { "solved": "Solved! ", "weak": "", "wrong": "Not quite. " }[v.verdict] + v.text
+	title.text = "Solve  %d of %d solved" % [deduction.solved.size(), deduction.questions.size()]
+	if v.verdict == "solved":
+		_build_question(q)
+	_solve_caption()
+
+
+func _solve_caption() -> void:
+	var q: Dictionary = deduction.questions[step]
+	if deduction.all_solved():
+		caption.text = "Case closed.\n" + data.raw.deduction.get("closing", "")
+		play_btn.text = "Done"
+	elif deduction.solved.has(q.id):
+		caption.text = "Solved: " + q.get("explain", "")
+		play_btn.text = "Solved"
+	else:
+		caption.text = _verdict if _verdict != "" else "Pick an answer and %d clues, then Submit." % deduction.pick
+		play_btn.text = "Submit"
 
 
 func _object_name(oid: String) -> String:

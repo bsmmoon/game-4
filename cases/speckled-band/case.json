@@ -61,6 +61,8 @@
       "inspect": [ { "clue": "C_safe_iron", "requires": [] } ] },
     { "id": "saucer", "kind": "dish", "location": "roylott_room",
       "inspect": [ { "clue": "C_saucer_milk", "requires": [] } ] },
+    { "id": "fauna_book", "kind": "book", "location": "roylott_room",
+      "inspect": [ { "clue": "C_ref_adder", "requires": [] } ] },
     { "id": "dog_lash", "kind": "whip", "location": "roylott_room",
       "inspect": [ { "clue": "C_lash_loop", "requires": [] } ] },
     { "id": "lantern", "kind": "lamp", "location": "roylott_room", "states": { "lit": false } }
@@ -123,25 +125,78 @@
       "emits": [ { "sense": "sound", "loudness": 3, "desc": "sends for the doctor" } ] }
   ],
   "clues": [
-    { "id": "C_shutter_barred", "text": "The shutters are barred with a heavy iron bar. Nobody could open them from outside.",
+    { "id": "C_shutter_barred", "title": "Barred shutters", "text": "The shutters are barred with a heavy iron bar. Nobody could open them from outside.",
       "source": { "type": "inspect", "object": "shutter_middle" }, "core": true },
-    { "id": "C_vent_inner", "text": "A small ventilator opens into Dr. Roylott's room, not to the outside air. It looks recent.",
+    { "id": "C_vent_inner", "title": "Vent to Roylott's room", "text": "A small ventilator opens into Dr. Roylott's room, not to the outside air. It looks recent.",
       "source": { "type": "inspect", "object": "ventilator" }, "core": true },
-    { "id": "C_rope_dummy", "text": "The bell-rope is new. It hangs from a hook just above the ventilator and is tied to no wire.",
+    { "id": "C_rope_dummy", "title": "Dummy bell-rope", "text": "The bell-rope is new. It hangs from a hook just above the ventilator and is tied to no wire.",
       "source": { "type": "inspect", "object": "bell_rope" }, "core": true },
-    { "id": "C_rope_no_bell", "text": "You pull the rope. No bell rings anywhere in the house.",
+    { "id": "C_rope_no_bell", "title": "Rope rings no bell", "text": "You pull the rope. No bell rings anywhere in the house.",
       "source": { "type": "test", "object": "bell_rope" }, "core": true },
-    { "id": "C_bed_clamped", "text": "The bed is clamped to the floor, right under the rope. It cannot be moved.",
+    { "id": "C_bed_clamped", "title": "Bed clamped under rope", "text": "The bed is clamped to the floor, right under the rope. It cannot be moved.",
       "source": { "type": "inspect", "object": "bed_middle" }, "core": true },
-    { "id": "C_chair_marks", "text": "Boot marks on the seat of the wooden chair under the ventilator. Someone stands on it.",
+    { "id": "C_chair_marks", "title": "Boot marks on chair", "text": "Boot marks on the seat of the wooden chair under the ventilator. Someone stands on it.",
       "source": { "type": "inspect", "object": "chair_roylott" }, "core": true },
-    { "id": "C_safe_iron", "text": "A heavy iron safe. Dr. Roylott says it holds only business papers.",
+    { "id": "C_safe_iron", "title": "Iron safe", "text": "A heavy iron safe. Dr. Roylott says it holds only business papers.",
       "source": { "type": "inspect", "object": "safe" }, "core": true },
-    { "id": "C_saucer_milk", "text": "A saucer of milk on top of the safe. There is no cat in the house.",
+    { "id": "C_saucer_milk", "title": "Saucer of milk", "text": "A saucer of milk on top of the safe. There is no cat in the house.",
       "source": { "type": "inspect", "object": "saucer" }, "core": true },
-    { "id": "C_lash_loop", "text": "A small dog lash on the bed. Its end is tied into a loop of whipcord.",
-      "source": { "type": "inspect", "object": "dog_lash" }, "core": true }
+    { "id": "C_lash_loop", "title": "Looped dog lash", "text": "A small dog lash on the bed. Its end is tied into a loop of whipcord.",
+      "source": { "type": "inspect", "object": "dog_lash" }, "core": true },
+    { "id": "C_ref_adder", "title": "The swamp adder", "text": "Fauna book, bookmarked: the swamp adder of India. It can be trained to come back to a whistle, it drinks milk, and its bite kills in seconds, leaving only two tiny marks.",
+      "source": { "type": "reference", "object": "fauna_book", "reference": "R_swamp_adder" }, "core": true },
+    { "id": "C_door_locked", "title": "Julia locked her door", "text": "Helen heard Julia turn the key in her lock before bed.",
+      "source": { "type": "testimony", "witness": "helen", "event": "E03" }, "core": true },
+    { "id": "C_whistle", "title": "A low whistle", "text": "Helen heard a low whistle in the night, after the scream.",
+      "source": { "type": "testimony", "witness": "helen", "event": "E14" }, "core": true },
+    { "id": "C_clang", "title": "A metal clang", "text": "Then a clang, as if metal had fallen. Like a heavy door shutting?",
+      "source": { "type": "testimony", "witness": "helen", "event": "E16" }, "core": true },
+    { "id": "C_band", "title": "\"The speckled band!\"", "text": "Julia's last words: \"It was the band! The speckled band!\"",
+      "source": { "type": "testimony", "witness": "helen", "event": "E19" }, "core": true },
+    { "id": "C_pointed", "title": "She pointed at his room", "text": "Dying, Julia pointed toward the doctor's room.",
+      "source": { "type": "testimony", "witness": "helen", "event": "E20" }, "core": true }
   ],
+  "references": [
+    { "id": "R_swamp_adder", "title": "The Swamp Adder", "found_in": "fauna_book",
+      "facts": ["comes back to a whistle", "drinks milk", "bite kills in seconds", "leaves two tiny puncture marks"] }
+  ],
+  "hypotheses": [
+    { "id": "H_gipsies", "statement": "The gipsies on the lawn killed Julia.", "refuted_by": ["C_shutter_barred", "C_door_locked"] },
+    { "id": "H_fright", "statement": "Julia died of fright, alone.", "refuted_by": ["C_band", "C_whistle"] }
+  ],
+  "deduction": {
+    "pick": 2,
+    "closing": "Dr. Roylott sent a trained swamp adder through the vent and down the dummy rope, then whistled it back to its saucer of milk. The locked door and barred shutters never mattered.",
+    "questions": [
+      { "id": "culprit", "ask": "Who killed Julia?",
+        "options": [
+          { "id": "roylott", "text": "Dr. Roylott, her stepfather", "correct": true },
+          { "id": "gipsies", "text": "The gipsies on the lawn", "hypothesis": "H_gipsies",
+            "hint": "How would anyone outside get in? Look at the shutters, and remember the door." },
+          { "id": "helen", "text": "Helen", "hint": "Helen's room has no way into Julia's. Which room does?" }
+        ],
+        "evidence": ["C_vent_inner", "C_chair_marks", "C_saucer_milk", "C_lash_loop", "C_pointed", "C_clang", "C_safe_iron"],
+        "explain": "Only Roylott's room connects to Julia's, and he stands on his chair to reach the vent." },
+      { "id": "weapon", "ask": "What killed her?",
+        "options": [
+          { "id": "adder", "text": "A swamp adder: the speckled band", "correct": true },
+          { "id": "poison", "text": "Poison in her food", "hint": "She was fine at bed. Something came in the night. Check the books in Roylott's room." },
+          { "id": "fright", "text": "Nothing. She died of fright", "hypothesis": "H_fright",
+            "hint": "She named something with her last words, and someone whistled." }
+        ],
+        "evidence": ["C_ref_adder", "C_band", "C_whistle", "C_saucer_milk", "C_lash_loop"],
+        "explain": "A snake that drinks milk and comes back to a whistle: the 'speckled band' Julia saw." },
+      { "id": "path", "ask": "Her door was locked and the shutters barred. How did it reach her?",
+        "options": [
+          { "id": "vent", "text": "Through the vent and down the rope to the bed", "correct": true },
+          { "id": "window", "text": "Through the window", "hint": "Inspect the shutters in Julia's room." },
+          { "id": "door", "text": "Through the door, with a key", "hint": "Julia locked it herself, and unlocked it herself to get out." }
+        ],
+        "evidence": ["C_vent_inner", "C_rope_dummy", "C_rope_no_bell", "C_bed_clamped"],
+        "explain": "The rope rings nothing. It is a bridge from the vent to a bed that cannot be moved." }
+    ]
+  },
+
   "testimonies": [
     { "witness": "helen", "topic": "night_of_julias_death",
       "claims": [
