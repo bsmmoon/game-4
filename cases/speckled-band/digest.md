@@ -121,6 +121,6 @@ Moon's idea: act out events visually, whether the version shown is true or not. 
 
 **Helen's testimony** is the "Perceived by: Helen" rows, plus her guesses (the gipsies, death by fright). When it's replayed, the player sees *only* what she perceived: sounds play over a dark corridor. This is a fair way to show her uncertainty (R5).
 
-**What the extraction lacked for this:** perception per event, and witness accounts as separate timelines. I derived both here. Proposal (awaiting Moon): add a "Testimonies & perception" section to the skill's extraction prompt so future guests record these directly.
+**What the extraction lacked for this:** perception per event, and witness accounts as separate timelines. I derived both here. The skill's extraction prompt now asks for these directly (section 8).
 
 **Architecture (Moon's decision #100):** case data, the event simulator, perception and the fairness checker form a pure data/logic layer with no display code. The puppet display only reads that state and plays events, so it can be swapped out. Phase 4 should design the format with this split.

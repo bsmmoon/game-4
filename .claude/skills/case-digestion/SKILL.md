@@ -60,6 +60,7 @@ Sections:
 5. Reasoning chain — the detective's deductions as steps: premises (clue ids or prior steps) → conclusion. Mark any step that uses knowledge the reader never received
 6. Red herrings — false leads and what dispels each one
 7. Solution — culprit, method, motive, and how it is proven or confirmed
+8. Testimonies & perception — (a) for each key event in the true timeline: who could see, hear or smell it, and from where; (b) for each witness account: the account as that witness's own timeline (time, actor, action, place), marking what they perceived directly versus what they guessed or assumed
 
 When done, report back with a 3-line summary.
 ```
@@ -74,6 +75,7 @@ Read `extraction.md` only, and write `digest.md`:
 2. **Player actions:** what the player has to do to find each clue (inspect, question, compare, wait, test…).
 3. **Mechanics:** list the mechanics this case needs. Mark each one as already in the game, or **new**.
 4. **Deduction input:** how the player would state each key conclusion without being able to brute-force guess it.
+5. **Enactment notes:** the key events as an event script (time, actor, action, place, perceived by), and how each testimony replays as a perception-limited version of it. Keep the display separate from the data: scripts are data, and the puppets only render them.
 
 ### Phase 4 — Case format (host)
 
