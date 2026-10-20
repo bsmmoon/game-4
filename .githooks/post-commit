@@ -1,0 +1,27 @@
+#!/bin/sh
+# Automatically refresh GitHub App installation token and push after every commit
+python3 -c "
+import jwt, time, requests, subprocess, re
+try:
+    proc = subprocess.run(['git', 'remote', 'get-url', 'origin'], capture_output=True, text=True)
+    orig_url = proc.stdout.strip()
+    match = re.search(r'github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$', orig_url)
+    if match:
+        repo_path = match.group(1)
+        private_key = open('/home/seokmin/.ssh/agent-3376279955.private-key.pem').read()
+        app_id = '4263469'
+        installation_id = '145633190'
+        now = int(time.time())
+        payload = {'iat': now - 60, 'exp': now + (10 * 60), 'iss': app_id}
+        token = jwt.encode(payload, private_key, algorithm='RS256')
+        headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'}
+        res = requests.post(f'https://api.github.com/app/installations/{installation_id}/access_tokens', headers=headers)
+        inst_token = res.json().get('token')
+        if inst_token:
+            remote_url = f'https://x-access-token:{inst_token}@github.com/{repo_path}.git'
+            subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url], check=True)
+except Exception:
+    pass
+" 2>/dev/null
+
+git push origin HEAD

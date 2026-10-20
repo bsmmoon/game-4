@@ -1,0 +1,1 @@
+/home/seokmin/Workspace/PERSONA.md
