@@ -80,12 +80,15 @@ func _init() -> void:
 	_eq(dd.answer("path", "vent", ["C_rope_dummy", "C_bed_clamped"]).verdict, "weak", "unfound clues don't count")
 	_eq(dd.answer("path", "vent", ["C_rope_dummy", "C_rope_no_bell"]).verdict, "solved", "two found backing clues solve it")
 	_true(not dd.all_solved(), "one of three questions solved")
+	_eq(dd.explanation.size(), 10, "ten explanation steps")
+	dd.explanation = [dd.explanation[1], dd.explanation[0]]
+	_true(dd.validate().size() > 1, "validator catches out-of-order steps and unexplained clues")
 
 	var unfair = CaseData.new()
 	unfair._index({ "objects": [], "clues": [{ "id": "X", "text": "x", "core": true, "source": { "type": "inspect", "object": "nowhere" } }],
 		"deduction": { "pick": 1, "questions": [{ "id": "q", "ask": "?", "evidence": ["X"],
 			"options": [{ "id": "a", "correct": true }, { "id": "b" }] }] } })
-	_eq(Deduction.new(unfair, Investigation.new(unfair)).validate().size(), 3, "validator catches unfindable evidence, too few clues, missing hint")
+	_eq(Deduction.new(unfair, Investigation.new(unfair)).validate().size(), 4, "validator catches unfindable evidence, too few clues, missing hint, unexplained clue")
 
 	print("FAILURES: %d" % failures if failures else "ALL TESTS PASSED")
 	quit(1 if failures else 0)

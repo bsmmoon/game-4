@@ -166,6 +166,18 @@
   ],
   "deduction": {
     "pick": 2,
+    "explanation": [
+      { "event": "E03", "clues": ["C_door_locked", "C_shutter_barred"], "say": "Julia locks her own door, and her shutters are barred. Nothing can come in that way. So it came in another way." },
+      { "event": "E07", "clues": ["C_chair_marks"], "say": "Roylott climbs onto his chair. The boot marks on its seat show he stands on it often, to reach the vent." },
+      { "event": "E08", "clues": ["C_vent_inner", "C_lash_loop"], "say": "He lets the adder through the vent into Julia's room. The looped lash is how he handles it." },
+      { "event": "E09", "clues": ["C_rope_dummy", "C_rope_no_bell"], "say": "It slides down the bell-rope. That rope rings no bell. It is only a bridge for the snake." },
+      { "event": "E10", "clues": ["C_bed_clamped", "C_ref_adder"], "say": "The bed is clamped to the floor right under the rope, so the snake always finds her. Its bite leaves only two tiny marks." },
+      { "event": "E14", "clues": ["C_whistle"], "say": "Roylott whistles. The adder is trained to come back to a whistle: that is what Helen heard." },
+      { "event": "E15", "clues": ["C_saucer_milk"], "say": "It climbs back to his room, to its saucer of milk." },
+      { "event": "E16", "clues": ["C_safe_iron", "C_clang"], "say": "He shuts it in his iron safe. That was the clang of metal." },
+      { "event": "E19", "clues": ["C_band"], "say": "Julia had seen it by the light of her match: the speckled band." },
+      { "event": "E20", "clues": ["C_pointed"], "say": "And with her last strength she pointed at the room it came from." }
+    ],
     "closing": "Dr. Roylott sent a trained swamp adder through the vent and down the dummy rope, then whistled it back to its saucer of milk. The locked door and barred shutters never mattered.",
     "questions": [
       { "id": "culprit", "ask": "Who killed Julia?",

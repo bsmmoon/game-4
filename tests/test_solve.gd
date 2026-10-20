@@ -39,6 +39,14 @@ func _initialize():
 	_check(m.caption.text.begins_with("Case closed"), "closing screen shown")
 	var img := root.get_texture().get_image()
 	img.save_png("/tmp/g4_solve_done.png")
+	await _tap("Explain")
+	_check(m.mode == "explain" and m.steps.size() == 10, "Explain starts the ten-step replay")
+	for i in 3:
+		await _tap("Next >")
+	_check(m.caption.text.begins_with("Holmes: It slides down"), "step 4 explains the rope")
+	_check(m.map.frame.marks.has("bell_rope"), "step 4 points at the rope")
+	await _frames(10)
+	root.get_texture().get_image().save_png("/tmp/g4_explain.png")
 	print("ALL TESTS PASSED" if fails == 0 else "FAILURES: %d" % fails)
 	quit(1 if fails else 0)
 

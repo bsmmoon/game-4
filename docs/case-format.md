@@ -118,6 +118,8 @@ v0.2 (built, replaces the event-card sketch below for now):
       "evidence": ["C_vent_inner", "C_chair_marks", "..."],
       "explain": "Only Roylott's room connects to Julia's..." } ] }
 ```
+`explanation: [{ "event": "E09", "clues": ["C_rope_dummy"], "say": "It slides down the bell-rope..." }]` is the closing replay: once all questions are solved, Holmes walks the true night step by step and points at where each proof was found. The checker requires steps in event order, findable clues, and every core clue explained somewhere (no clue is left without a payoff).
+
 The player picks an option and backs it with `pick` found clues from `evidence`. A wrong option shows its `hint`; the right option with weak backing says how many picked clues count. Nothing is ever a game over. The checker requires exactly one correct option per question, a hint on every wrong option, at least `pick` evidence clues that are core and findable by a simulated thorough player, and findable `refuted_by` clues for every hypothesis.
 
 v0.1 sketch (event cards, not built yet):

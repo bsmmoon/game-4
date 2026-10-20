@@ -3,6 +3,7 @@
 ## testimony replayed with only what she perceived (guesses as ghosts), or the
 ## present-day investigation: tap objects to find clues for the notebook,
 ## or solving: answer the case's questions, backing each with found clues.
+## Once solved, Holmes explains: the true night replayed with its proofs.
 extends Control
 
 const CaseData = preload("res://src/core/case_data.gd")
@@ -17,7 +18,7 @@ const CASE_DIR := "res://cases/speckled-band/"
 const WITNESS := "helen"
 const PLAY_SECONDS := 1.8
 const MODES := ["truth", "testimony", "investigate", "solve"]
-const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate", "solve": "Solve" }
+const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate", "solve": "Solve", "explain": "Holmes explains" }
 const SEARCH_ROOMS := ["middle_room", "roylott_room"]
 
 var data
@@ -165,13 +166,15 @@ func _set_mode(m: String) -> void:
 		steps = t.claims.duplicate()
 	elif mode == "investigate":
 		steps = SEARCH_ROOMS.duplicate()
-	else:
+	elif mode == "solve":
 		for q in deduction.questions:
 			steps.append(q.id)
+	else:
+		steps = deduction.explanation.duplicate()
 	var next: String = MODES[(MODES.find(mode) + 1) % MODES.size()]
 	mode_btn.text = "%s  |  tap: %s" % [MODE_NAMES[mode], MODE_NAMES[next]]
 	var searching := mode == "investigate"
-	slider.visible = mode in ["truth", "testimony"]
+	slider.visible = mode in ["truth", "testimony", "explain"]
 	prev_btn.text = "< Room" if searching else "< Prev"
 	next_btn.text = "Room >" if searching else "Next >"
 	play_btn.text = "Play"
@@ -195,6 +198,8 @@ func _middle_pressed() -> void:
 	if mode == "investigate":
 		_notes_open = not _notes_open
 		_show_room(_room_shown)
+	elif mode == "solve" and deduction.all_solved():
+		_set_mode("explain")
 	elif mode == "solve":
 		_submit()
 	else:
@@ -232,8 +237,10 @@ func _show(i: int) -> void:
 		_show_claim(steps[i])
 	elif mode == "investigate":
 		_show_room(steps[i])
-	else:
+	elif mode == "solve":
 		_show_question()
+	else:
+		_show_explain(steps[i])
 	_layout_for_mode()
 
 
@@ -249,6 +256,28 @@ func _layout_for_mode() -> void:
 # --- frames ---------------------------------------------------------------
 
 func _show_truth(ei: int) -> void:
+	map.set_frame(_truth_frame(ei))
+
+
+## Truth frame plus a caption and pointers at where the cited clues are found.
+func _show_explain(s: Dictionary) -> void:
+	var ei: int = data.event_index(s.event)
+	var f := _truth_frame(ei)
+	f.marks = {}
+	var titles := []
+	for id in s.clues:
+		var c: Dictionary = investigation.clues[id]
+		titles.append(c.title)
+		var oid: String = c.source.get("object", "")
+		if layout.objects.has(oid):
+			f.marks[oid] = "done"
+			f.selected = oid
+	title.text = "Holmes explains  %s" % _clock(timeline.event(ei).t)
+	caption.text = "Holmes: %s\nProof: %s" % [s.say, ", ".join(titles)]
+	map.set_frame(f)
+
+
+func _truth_frame(ei: int) -> Dictionary:
 	var e: Dictionary = timeline.event(ei)
 	var after = timeline.state_after(ei)
 	var focus: Array = perception.event_locations(e)
@@ -263,7 +292,7 @@ func _show_truth(ei: int) -> void:
 			who.append("%s (%s)" % [_name(id), ", ".join(pv[id])])
 	title.text = "The truth  %s" % _clock(e.t)
 	caption.text = "%s: %s\nPerceived by: %s" % [_name(e.actor), _describe(e), "no one" if who.is_empty() else "; ".join(who)]
-	map.set_frame(f)
+	return f
 
 
 func _show_claim(c: Dictionary) -> void:
@@ -465,8 +494,8 @@ func _submit() -> void:
 func _solve_caption() -> void:
 	var q: Dictionary = deduction.questions[step]
 	if deduction.all_solved():
-		caption.text = "Case closed.\n" + data.raw.deduction.get("closing", "")
-		play_btn.text = "Done"
+		caption.text = "Case closed.\n%s\nTap Explain to hear Holmes walk through the night." % data.raw.deduction.get("closing", "")
+		play_btn.text = "Explain"
 	elif deduction.solved.has(q.id):
 		caption.text = "Solved: " + q.get("explain", "")
 		play_btn.text = "Solved"

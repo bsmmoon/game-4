@@ -9,6 +9,7 @@ var investigation
 var questions: Array = []
 var pick: int = 2            # clues needed to back an answer
 var solved: Dictionary = {}  # question id -> option id
+var explanation: Array = []  # [{event, clues, say}], replayed once solved
 
 
 func _init(data, inv) -> void:
@@ -17,6 +18,7 @@ func _init(data, inv) -> void:
 	var d: Dictionary = data.raw.get("deduction", {})
 	questions = d.get("questions", [])
 	pick = d.get("pick", 2)
+	explanation = d.get("explanation", [])
 
 
 func question(qid: String) -> Dictionary:
@@ -84,6 +86,31 @@ func validate() -> Array:
 		for o in q.options:
 			if o.has("hypothesis") and not hyps.has(o.hypothesis):
 				errors.append("question %s option %s cites unknown hypothesis %s" % [q.id, o.id, o.hypothesis])
+	errors.append_array(_validate_explanation(findable))
+	return errors
+
+
+## The closing replay walks the true night in order, every step is backed
+## by findable clues, and every core clue pays off somewhere.
+func _validate_explanation(findable: Array) -> Array:
+	var errors := []
+	var cited := {}
+	var last := -1
+	for s in explanation:
+		var ei: int = case_data.event_index(s.get("event", ""))
+		if ei < 0:
+			errors.append("explanation cites unknown event %s" % s.get("event"))
+		elif ei <= last:
+			errors.append("explanation step %s is out of order" % s.event)
+		else:
+			last = ei
+		for id in s.get("clues", []):
+			cited[id] = true
+			if not findable.has(id):
+				errors.append("explanation step %s cites unfindable clue %s" % [s.get("event"), id])
+	for id in investigation.clues:
+		if investigation.clues[id].get("core", false) and not cited.has(id):
+			errors.append("core clue %s is never explained" % id)
 	return errors
 
 
