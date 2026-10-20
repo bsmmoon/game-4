@@ -3,6 +3,7 @@
 extends Control
 
 signal swiped(dir: int)
+signal tapped_object(oid: String)
 
 const DOOR_COLORS := { "open": Color("#6fbf73"), "closed": Color("#d9a441"), "locked": Color("#d0503c") }
 const BUBBLE_COLORS := { "sound": Color("#fff6d8"), "speech": Color("#ffffff"), "light": Color("#fff3a0"), "smell": Color("#e2d6f5"), "thought": Color("#d8d8e8") }
@@ -10,7 +11,8 @@ const BUBBLE_COLORS := { "sound": Color("#fff6d8"), "speech": Color("#ffffff"), 
 var layout: Dictionary = {}
 ## frame = { rooms: {id: {lit, known, focus}}, doors: {id: state},
 ##           actors: [{id, tile, pose, alpha, label}], bubbles: [{tile, text, kind}],
-##           objects: [ids to draw] (optional), center: tile the camera follows }
+##           objects: [ids to draw] (optional), center: tile the camera follows,
+##           marks: {oid: "todo"|"done"} tappable objects (optional), selected: oid }
 var frame: Dictionary = {}
 
 const ZOOM := 1.6      # camera zoom over "whole house fits the width"
@@ -105,6 +107,9 @@ func _draw() -> void:
 	for oid in layout.objects:
 		if not oid.begins_with("door_") and visible_objects.has(oid):
 			_draw_object(oid, layout.objects[oid])
+	for oid in frame.get("marks", {}):
+		if layout.objects.has(oid):
+			_draw_mark(layout.objects[oid], frame.marks[oid], frame.get("selected", "") == oid)
 	for oid in frame.get("doors", {}):
 		if layout.objects.has(oid):
 			_draw_door(layout.objects[oid], frame.doors[oid])
@@ -146,6 +151,17 @@ func _draw_object(oid: String, o: Dictionary) -> void:
 	draw_circle(s, _k * 0.06, Color("#3a2f25"))
 	draw_string(_font, s + Vector2(_k * 0.08, -_k * 0.02), oid.replace("_", " ").replace(" middle", "").replace(" roylott", ""),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.4))
+
+
+func _draw_mark(o: Dictionary, mark: String, selected: bool) -> void:
+	var s := iso(Vector2(o.x, o.y))
+	var r: float = max(14.0, _k * 0.12)
+	var col := Color("#6fbf73") if mark == "done" else Color("#ffd84a")
+	if selected:
+		draw_circle(s, r * 1.5, Color(col, 0.3))
+	draw_arc(s, r, 0, TAU, 24, col, 3.0, true)
+	var glyph := "ok" if mark == "done" else "?"
+	draw_string(_font, s + Vector2(-r, r * 0.35), glyph, HORIZONTAL_ALIGNMENT_CENTER, r * 2, int(r), col)
 
 
 func _draw_door(o: Dictionary, state: String) -> void:

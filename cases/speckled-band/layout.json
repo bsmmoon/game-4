@@ -8,12 +8,15 @@
     "lawn":         { "x": 0, "y": -3, "w": 13, "h": 2 }
   },
   "objects": {
-    "ventilator":    { "x": 5.0, "y": 1.0 },
-    "bell_rope":     { "x": 5.4, "y": 1.2 },
-    "bed_middle":    { "x": 6.0, "y": 1.5 },
-    "chair_roylott": { "x": 4.4, "y": 1.0 },
+    "ventilator":    { "x": 5.1, "y": 0.5 },
+    "bell_rope":     { "x": 5.9, "y": 1.3 },
+    "bed_middle":    { "x": 7.3, "y": 2.6 },
+    "chair_roylott": { "x": 4.3, "y": 1.6 },
     "safe":          { "x": 1.0, "y": 0.8 },
     "lantern":       { "x": 2.5, "y": 2.0 },
+    "saucer":        { "x": 1.5, "y": 0.6 },
+    "dog_lash":      { "x": 3.2, "y": 2.8 },
+    "shutter_middle": { "x": 8.0, "y": 0.2 },
     "door_roylott":  { "x": 2.5, "y": 4.0 },
     "door_middle":   { "x": 7.0, "y": 4.0 },
     "door_helen":    { "x": 11.0, "y": 4.0 }

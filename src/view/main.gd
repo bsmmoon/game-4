@@ -1,26 +1,32 @@
 ## Prototype screen (portrait phone). Asks the core for state and perception,
 ## turns it into a frame for MapView. Two modes: the true night, or Helen's
-## testimony replayed with only what she perceived (guesses as ghosts).
+## testimony replayed with only what she perceived (guesses as ghosts), or the
+## present-day investigation: tap objects to find clues for the notebook.
 extends Control
 
 const CaseData = preload("res://src/core/case_data.gd")
 const Timeline = preload("res://src/core/timeline.gd")
 const Perception = preload("res://src/core/perception.gd")
 const Testimony = preload("res://src/core/testimony.gd")
+const Investigation = preload("res://src/core/investigation.gd")
 const MapView = preload("res://src/view/map_view.gd")
 
 const CASE_DIR := "res://cases/speckled-band/"
 const WITNESS := "helen"
 const PLAY_SECONDS := 1.8
+const MODES := ["truth", "testimony", "investigate"]
+const MODE_NAMES := { "truth": "The truth", "testimony": "Helen's testimony", "investigate": "Investigate" }
+const SEARCH_ROOMS := ["middle_room", "roylott_room"]
 
 var data
 var timeline
 var perception
 var testimony
+var investigation
 var layout: Dictionary = {}
 
-var mode := "truth"   # "truth" | "testimony"
-var steps: Array = [] # truth: event indices; testimony: claim dicts
+var mode := "truth"   # one of MODES
+var steps: Array = [] # truth: event indices; testimony: claim dicts; investigate: room ids
 var step := 0
 var playing := false
 var _play_t := 0.0
@@ -31,6 +37,12 @@ var caption: Label
 var slider: HSlider
 var mode_btn: Button
 var play_btn: Button
+var prev_btn: Button
+var next_btn: Button
+var action_btn: Button
+var notebook: Label
+var selected := ""
+var _notes_open := false
 
 
 func _ready() -> void:
@@ -39,6 +51,7 @@ func _ready() -> void:
 	timeline = Timeline.new(data)
 	perception = Perception.new(data)
 	testimony = Testimony.new(timeline, perception)
+	investigation = Investigation.new(data)
 	_build_ui()
 	_set_mode("truth")
 
@@ -61,14 +74,22 @@ func _build_ui() -> void:
 	title = _label(24)
 	title.clip_text = true
 	box.add_child(title)
-	mode_btn = _button("", func(): _set_mode("testimony" if mode == "truth" else "truth"))
+	mode_btn = _button("", func(): _set_mode(MODES[(MODES.find(mode) + 1) % MODES.size()]))
 	box.add_child(mode_btn)
 
 	map = MapView.new()
 	map.layout = layout
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map.swiped.connect(_go)
+	map.tapped_object.connect(_inspect)
 	box.add_child(map)
+
+	notebook = _label(21)
+	notebook.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	notebook.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	notebook.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	notebook.visible = false
+	box.add_child(notebook)
 
 	caption = _label(21)
 	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -81,13 +102,17 @@ func _build_ui() -> void:
 	slider.step = 1
 	slider.value_changed.connect(func(v): _show(int(v)))
 	box.add_child(slider)
+	action_btn = _button("", _test_selected)
+	box.add_child(action_btn)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	row.add_child(_button("< Prev", func(): _go(-1)))
-	play_btn = _button("Play", _toggle_play)
+	prev_btn = _button("", func(): _go(-1))
+	row.add_child(prev_btn)
+	play_btn = _button("", _middle_pressed)
 	row.add_child(play_btn)
-	row.add_child(_button("Next >", func(): _go(1)))
+	next_btn = _button("", func(): _go(1))
+	row.add_child(next_btn)
 	box.add_child(row)
 
 
@@ -112,15 +137,26 @@ func _button(text: String, cb: Callable) -> Button:
 
 func _set_mode(m: String) -> void:
 	mode = m
+	if playing:
+		_toggle_play()
 	steps.clear()
+	_notes_open = false
+	selected = ""
 	if mode == "truth":
 		for i in timeline.size():
 			steps.append(i)
-		mode_btn.text = "Truth  |  tap: Helen's testimony"
-	else:
+	elif mode == "testimony":
 		var t: Dictionary = _testimony_of(WITNESS)
 		steps = t.claims.duplicate()
-		mode_btn.text = "Helen's testimony  |  tap: truth"
+	else:
+		steps = SEARCH_ROOMS.duplicate()
+	var next: String = MODES[(MODES.find(mode) + 1) % MODES.size()]
+	mode_btn.text = "%s  |  tap: %s" % [MODE_NAMES[mode], MODE_NAMES[next]]
+	var searching := mode == "investigate"
+	slider.visible = not searching
+	prev_btn.text = "< Room" if searching else "< Prev"
+	next_btn.text = "Room >" if searching else "Next >"
+	play_btn.text = "Play"
 	slider.max_value = steps.size() - 1
 	step = -1
 	slider.set_value_no_signal(0)
@@ -128,7 +164,21 @@ func _set_mode(m: String) -> void:
 
 
 func _go(dir: int) -> void:
+	if mode == "investigate":
+		_notes_open = false
+		selected = ""
+		step = -1 if steps.size() > 1 else step
+		_show(posmod(steps.find(_room_shown) + dir, steps.size()))
+		return
 	_show(clamp(step + dir, 0, steps.size() - 1))
+
+
+func _middle_pressed() -> void:
+	if mode == "investigate":
+		_notes_open = not _notes_open
+		_show_room(_room_shown)
+	else:
+		_toggle_play()
 
 
 func _toggle_play() -> void:
@@ -158,8 +208,19 @@ func _show(i: int) -> void:
 	slider.set_value_no_signal(i)
 	if mode == "truth":
 		_show_truth(steps[i])
-	else:
+	elif mode == "testimony":
 		_show_claim(steps[i])
+	else:
+		_show_room(steps[i])
+	_layout_for_mode()
+
+
+func _layout_for_mode() -> void:
+	var searching := mode == "investigate"
+	map.visible = not (searching and _notes_open)
+	notebook.visible = searching and _notes_open
+	action_btn.visible = searching and selected != "" and not _notes_open \
+		and not investigation.test_verbs(selected).is_empty()
 
 
 # --- frames ---------------------------------------------------------------
@@ -212,6 +273,90 @@ func _show_claim(c: Dictionary) -> void:
 		caption.text = "Helen: \"%s\"\nBasis: %s. She never perceived this; the ghost is her theory." % [c.as, basis]
 	title.text = "Helen's testimony  %s" % t
 	map.set_frame(f)
+
+
+# --- investigation ----------------------------------------------------------
+
+var _room_shown := ""
+var _result := ""   # caption for the last inspect/test
+
+
+## Present day: every room known and lit, no one around, inspectable
+## objects marked "?" until all their clues are found.
+func _show_room(room: String) -> void:
+	if room != _room_shown:
+		_result = ""
+	_room_shown = room
+	var last = timeline.state_after(timeline.size() - 1)
+	var f := { "rooms": {}, "doors": {}, "actors": [], "bubbles": [], "marks": {},
+		"objects": data.objects.keys(), "center": _spot(room), "selected": selected }
+	for id in layout.rooms:
+		f.rooms[id] = { "lit": true, "known": true, "focus": id == room, "name": data.locations[id].name }
+	for oid in last.objects:
+		if last.objects[oid].has("door") and oid.begins_with("door_"):
+			f.doors[oid] = last.objects[oid].door
+	for oid in investigation.inspectables():
+		f.marks[oid] = "done" if investigation.exhausted(oid) else "todo"
+	if selected != "" and _bubble != "":
+		f.bubbles.append({ "tile": Vector2(layout.objects[selected].x, layout.objects[selected].y),
+			"text": _bubble, "kind": "thought" })
+	var n: int = investigation.core_found()
+	var total: int = investigation.core_total()
+	title.text = "Investigate  %s" % data.locations[room].name
+	play_btn.text = "Back" if _notes_open else "Notes %d/%d" % [n, total]
+	caption.text = _result if _result != "" else "Tap a ? to inspect it. Swipe or use Room buttons to move.\nClues found: %d of %d." % [n, total]
+	notebook.text = _notebook_text()
+	if selected != "":
+		var verbs: Array = investigation.test_verbs(selected)
+		if not verbs.is_empty():
+			action_btn.text = "%s the %s" % [verbs[0].capitalize(), _object_name(selected)]
+	map.set_frame(f)
+	_layout_for_mode()
+
+
+var _bubble := ""
+
+
+func _inspect(oid: String) -> void:
+	if mode != "investigate":
+		return
+	selected = oid
+	var results: Array = investigation.inspect(oid)
+	_bubble = "!" if results.any(func(r): return r.new) else "..."
+	_result = _results_text(_object_name(oid).capitalize(), results)
+	_show_room(_room_shown)
+
+
+func _test_selected() -> void:
+	if selected == "":
+		return
+	var verb: String = investigation.test_verbs(selected)[0]
+	var t: Dictionary = investigation.test(selected, verb)
+	_bubble = "(no sound)" if t.emits.is_empty() else ", ".join(t.emits.map(func(e): return e.desc))
+	_result = _results_text("%s the %s" % [verb.capitalize(), _object_name(selected)], t.results)
+	_show_room(_room_shown)
+
+
+func _results_text(head: String, results: Array) -> String:
+	if results.is_empty():
+		return head + "\nNothing more to learn here yet."
+	var lines := [head]
+	for r in results:
+		lines.append(("NEW: " if r.new else "") + r.clue.text)
+	return "\n".join(lines)
+
+
+func _notebook_text() -> String:
+	if investigation.found.is_empty():
+		return "Notebook\n\nNo clues yet. Inspect the objects marked ?."
+	var lines := ["Notebook  (%d of %d)" % [investigation.core_found(), investigation.core_total()], ""]
+	for id in investigation.found:
+		lines.append("- " + investigation.clues[id].text)
+	return "\n".join(lines)
+
+
+func _object_name(oid: String) -> String:
+	return oid.replace("_middle", "").replace("_roylott", "").replace("_", " ")
 
 
 ## Rooms, doors and puppets for a state. With a witness, only the witness's

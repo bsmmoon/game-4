@@ -5,6 +5,7 @@ const CaseData = preload("res://src/core/case_data.gd")
 const Timeline = preload("res://src/core/timeline.gd")
 const Perception = preload("res://src/core/perception.gd")
 const Testimony = preload("res://src/core/testimony.gd")
+const Investigation = preload("res://src/core/investigation.gd")
 
 var failures := 0
 
@@ -38,6 +39,32 @@ func _init() -> void:
 
 	var bad = {"witness": "helen", "claims": [{"event": "E09", "basis": "perceived", "as": "I heard a hiss."}]}
 	_eq(tm.check(bad).size(), 1, "checker rejects an impossible claim")
+
+	var inv = Investigation.new(data)
+	_eq(inv.validate(), [], "clue data is consistent")
+	_eq(inv.inspectables().size(), 8, "eight inspectable objects")
+	_eq(inv.core_total(), 9, "nine core clues")
+	var r: Array = inv.inspect("bell_rope")
+	_eq(r.size(), 1, "rope gives one inspect clue")
+	_true(r[0].new and r[0].clue.id == "C_rope_dummy", "rope inspect reveals the dummy rope")
+	_true(not inv.inspect("bell_rope")[0].new, "second inspect shows the clue again, not new")
+	_true(not inv.exhausted("bell_rope"), "rope still has a test to try")
+	_eq(inv.test_verbs("bell_rope"), ["pull"], "rope can be pulled")
+	var t: Dictionary = inv.test("bell_rope", "pull")
+	_eq(t.results[0].clue.id, "C_rope_no_bell", "pulling the rope: no bell")
+	_true(inv.exhausted("bell_rope"), "rope exhausted after inspect + test")
+	_eq(inv.core_found(), 2, "two clues found")
+	_eq(inv.test("bell_rope", "kick").results, [], "unknown test gives nothing")
+
+	var gated = CaseData.new()
+	gated._index({ "objects": [{ "id": "box", "inspect": [{ "clue": "A", "requires": [] }, { "clue": "B", "requires": ["A"] }] }],
+		"clues": [{ "id": "A", "text": "a", "source": { "type": "inspect", "object": "box" } },
+			{ "id": "B", "text": "b", "source": { "type": "inspect", "object": "box" } },
+			{ "id": "C", "text": "c", "source": { "type": "inspect", "object": "jar" } }] })
+	var gi = Investigation.new(gated)
+	_eq(gi.inspect("box").size(), 1, "gated clue hidden until its requirement is found")
+	_eq(gi.inspect("box").size(), 2, "gated clue shows once requirement found")
+	_eq(gi.validate().size(), 1, "validator catches an unreachable clue")
 
 	print("FAILURES: %d" % failures if failures else "ALL TESTS PASSED")
 	quit(1 if failures else 0)
