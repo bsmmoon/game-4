@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "id": "speckled-band",
+    "title": "The Speckled Band",
+    "source": "Arthur Conan Doyle, 1892 (public domain)",
+    "format_version": "0.1-proto",
+    "scope": "Prototype subset: the night of Julia's death only."
+  },
+  "verbs": ["move", "lock", "unlock", "open", "sleep", "wake", "light", "climb", "release", "descend", "bite", "strike_match", "scream", "whistle", "shut", "speak", "point", "collapse"],
+  "locations": [
+    { "id": "roylott_room", "name": "Roylott's room", "light": "dark",
+      "connections": [
+        { "to": "corridor", "via": "door_roylott", "kind": "door" },
+        { "to": "middle_room", "via": "ventilator", "kind": "vent", "passes": ["sound", "smell", "light"], "traversable_by": ["small_animal"] },
+        { "to": "lawn", "via": "window_roylott", "kind": "window" }
+      ] },
+    { "id": "middle_room", "name": "Julia's room", "light": "dark",
+      "connections": [
+        { "to": "corridor", "via": "door_middle", "kind": "door" },
+        { "to": "roylott_room", "via": "ventilator", "kind": "vent", "passes": ["sound", "smell", "light"], "traversable_by": ["small_animal"] },
+        { "to": "helen_room", "via": null, "kind": "wall" },
+        { "to": "lawn", "via": "shutter_middle", "kind": "window" }
+      ] },
+    { "id": "helen_room", "name": "Helen's room", "light": "dark",
+      "connections": [
+        { "to": "corridor", "via": "door_helen", "kind": "door" },
+        { "to": "middle_room", "via": null, "kind": "wall" },
+        { "to": "lawn", "via": "window_helen", "kind": "window" }
+      ] },
+    { "id": "corridor", "name": "Corridor", "light": "lit", "note": "Lamp light is a prototype assumption, not checked against the source.",
+      "connections": [
+        { "to": "roylott_room", "via": "door_roylott", "kind": "door" },
+        { "to": "middle_room", "via": "door_middle", "kind": "door" },
+        { "to": "helen_room", "via": "door_helen", "kind": "door" }
+      ] },
+    { "id": "lawn", "name": "Lawn", "light": "dark", "outdoor": true,
+      "connections": [
+        { "to": "roylott_room", "via": "window_roylott", "kind": "window" },
+        { "to": "middle_room", "via": "shutter_middle", "kind": "window" },
+        { "to": "helen_room", "via": "window_helen", "kind": "window" }
+      ] }
+  ],
+  "objects": [
+    { "id": "door_roylott", "kind": "door", "states": { "door": "closed" } },
+    { "id": "door_middle", "kind": "door", "states": { "door": "open" } },
+    { "id": "door_helen", "kind": "door", "states": { "door": "open" } },
+    { "id": "window_roylott", "kind": "window", "states": { "door": "closed" } },
+    { "id": "shutter_middle", "kind": "window", "states": { "door": "locked" } },
+    { "id": "window_helen", "kind": "window", "states": { "door": "locked" } },
+    { "id": "ventilator", "kind": "vent", "location": "middle_room" },
+    { "id": "bell_rope", "kind": "rope", "location": "middle_room" },
+    { "id": "bed_middle", "kind": "bed", "location": "middle_room", "states": { "clamped": true } },
+    { "id": "chair_roylott", "kind": "chair", "location": "roylott_room" },
+    { "id": "safe", "kind": "safe", "location": "roylott_room", "states": { "door": "open" } },
+    { "id": "lantern", "kind": "lamp", "location": "roylott_room", "states": { "lit": false } }
+  ],
+  "actors": [
+    { "id": "julia", "name": "Julia Stoner", "kind": "human", "start": { "location": "helen_room", "awake": true } },
+    { "id": "helen", "name": "Helen Stoner", "kind": "human", "start": { "location": "helen_room", "awake": true } },
+    { "id": "roylott", "name": "Dr. Grimesby Roylott", "kind": "human", "start": { "location": "roylott_room", "awake": true } },
+    { "id": "adder", "name": "Swamp adder", "kind": "animal", "size": "small_animal", "start": { "location": "roylott_room", "awake": true, "in": "safe" } }
+  ],
+  "events": [
+    { "id": "E01", "t": "d0 23:00:00", "actor": "julia", "verb": "move", "target": "corridor", "place": "helen_room",
+      "effects": [ { "actor": "julia", "set": { "location": "corridor" } } ] },
+    { "id": "E02", "t": "d0 23:00:10", "actor": "julia", "verb": "move", "target": "middle_room", "place": "corridor",
+      "effects": [ { "actor": "julia", "set": { "location": "middle_room" } } ] },
+    { "id": "E03", "t": "d0 23:00:20", "actor": "julia", "verb": "lock", "target": "door_middle", "place": "middle_room",
+      "emits": [ { "sense": "sound", "loudness": 3, "desc": "a key turning" } ],
+      "effects": [ { "object": "door_middle", "set": { "door": "locked" } } ] },
+    { "id": "E04", "t": "d0 23:00:30", "actor": "helen", "verb": "lock", "target": "door_helen", "place": "helen_room",
+      "effects": [ { "object": "door_helen", "set": { "door": "locked" } } ] },
+    { "id": "E05", "t": "d0 23:30:00", "actor": "julia", "verb": "sleep", "target": "bed_middle", "place": "middle_room",
+      "effects": [ { "actor": "julia", "set": { "awake": false } } ] },
+    { "id": "E06", "t": "d1 02:55:00", "actor": "roylott", "verb": "light", "target": "lantern", "place": "roylott_room",
+      "emits": [ { "sense": "light", "desc": "a gleam at the ventilator" }, { "sense": "smell", "desc": "burning oil and hot metal" } ],
+      "effects": [ { "object": "lantern", "set": { "lit": true } } ] },
+    { "id": "E07", "t": "d1 02:56:00", "actor": "roylott", "verb": "climb", "target": "chair_roylott", "place": "roylott_room" },
+    { "id": "E08", "t": "d1 02:57:00", "actor": "roylott", "verb": "release", "target": "adder", "place": "roylott_room",
+      "effects": [ { "actor": "adder", "set": { "in": "ventilator" } } ] },
+    { "id": "E09", "t": "d1 02:58:00", "actor": "adder", "verb": "descend", "target": "bell_rope", "place": "middle_room",
+      "emits": [ { "sense": "sound", "loudness": 1, "desc": "a soft hiss" } ],
+      "effects": [ { "actor": "adder", "set": { "location": "middle_room", "in": "bed_middle" } } ] },
+    { "id": "E10", "t": "d1 03:00:00", "actor": "adder", "verb": "bite", "target": "julia", "place": "middle_room",
+      "effects": [ { "actor": "julia", "set": { "awake": true, "bitten": true } } ] },
+    { "id": "E11", "t": "d1 03:00:10", "actor": "julia", "verb": "strike_match", "target": null, "place": "middle_room",
+      "emits": [ { "sense": "light", "desc": "a match flares" } ] },
+    { "id": "E12", "t": "d1 03:00:15", "actor": "julia", "verb": "scream", "target": null, "place": "middle_room",
+      "emits": [ { "sense": "sound", "loudness": 5, "desc": "a wild scream" } ] },
+    { "id": "E13", "t": "d1 03:00:20", "actor": "helen", "verb": "open", "target": "door_helen", "place": "helen_room",
+      "effects": [ { "object": "door_helen", "set": { "door": "open" } }, { "actor": "helen", "set": { "location": "corridor" } } ] },
+    { "id": "E14", "t": "d1 03:00:25", "actor": "roylott", "verb": "whistle", "target": "adder", "place": "roylott_room",
+      "emits": [ { "sense": "sound", "loudness": 3, "desc": "a low, clear whistle" } ] },
+    { "id": "E15", "t": "d1 03:00:35", "actor": "adder", "verb": "move", "target": "roylott_room", "place": "middle_room",
+      "effects": [ { "actor": "adder", "set": { "location": "roylott_room", "in": null } } ] },
+    { "id": "E16", "t": "d1 03:00:45", "actor": "roylott", "verb": "shut", "target": "safe", "place": "roylott_room",
+      "emits": [ { "sense": "sound", "loudness": 3, "desc": "a clanging sound, like falling metal" } ],
+      "effects": [ { "actor": "adder", "set": { "in": "safe" } }, { "object": "safe", "set": { "door": "closed" } }, { "object": "lantern", "set": { "lit": false } } ] },
+    { "id": "E17", "t": "d1 03:01:00", "actor": "julia", "verb": "unlock", "target": "door_middle", "place": "middle_room",
+      "emits": [ { "sense": "sound", "loudness": 2, "desc": "a key turning" } ],
+      "effects": [ { "object": "door_middle", "set": { "door": "open" } } ] },
+    { "id": "E18", "t": "d1 03:01:10", "actor": "julia", "verb": "move", "target": "corridor", "place": "middle_room",
+      "effects": [ { "actor": "julia", "set": { "location": "corridor" } } ] },
+    { "id": "E19", "t": "d1 03:01:20", "actor": "julia", "verb": "speak", "target": "helen", "place": "corridor",
+      "emits": [ { "sense": "sound", "loudness": 3, "desc": "\"Oh, my God! Helen! It was the band! The speckled band!\"" } ] },
+    { "id": "E20", "t": "d1 03:01:30", "actor": "julia", "verb": "point", "target": "door_roylott", "place": "corridor" },
+    { "id": "E21", "t": "d1 03:01:40", "actor": "julia", "verb": "collapse", "target": null, "place": "corridor",
+      "effects": [ { "actor": "julia", "set": { "awake": false, "collapsed": true } } ] },
+    { "id": "E22", "t": "d1 03:02:30", "actor": "roylott", "verb": "move", "target": "corridor", "place": "roylott_room",
+      "effects": [ { "actor": "roylott", "set": { "location": "corridor" } }, { "object": "door_roylott", "set": { "door": "open" } } ] },
+    { "id": "E23", "t": "d1 03:02:40", "actor": "roylott", "verb": "speak", "target": null, "place": "corridor",
+      "emits": [ { "sense": "sound", "loudness": 3, "desc": "sends for the doctor" } ] }
+  ],
+  "testimonies": [
+    { "witness": "helen", "topic": "night_of_julias_death",
+      "claims": [
+        { "event": "E03", "basis": "perceived", "as": "I heard her key turn in the lock." },
+        { "event": "E12", "basis": "perceived", "as": "A wild scream, a woman's." },
+        { "event": "E14", "basis": "perceived", "as": "As I opened my door, a low whistle." },
+        { "event": "E16", "basis": "perceived", "as": "Then a clanging sound, as if metal had fallen." },
+        { "event": "E17", "basis": "perceived", "as": "Her door unlocked." },
+        { "event": "E18", "basis": "perceived", "as": "She staggered out, white with terror." },
+        { "event": "E19", "basis": "perceived", "as": "\"The speckled band!\"" },
+        { "event": "E20", "basis": "perceived", "as": "She pointed toward the doctor's room." },
+        { "event": "E21", "basis": "perceived", "as": "She fell, and never spoke again." },
+        { "event": "E22", "basis": "perceived", "as": "My stepfather came out in his dressing-gown." },
+        { "actor": "gipsies", "verb": "whistle", "place": "lawn", "basis": "guess", "as": "Perhaps the gipsies on the lawn?" }
+      ] }
+  ]
+}

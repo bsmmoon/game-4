@@ -1,0 +1,29 @@
+{
+  "_comment": "Display-only data for the isometric view. Tile coordinates, not game logic. Swap or delete freely.",
+  "rooms": {
+    "roylott_room": { "x": 0, "y": 0, "w": 5, "h": 4 },
+    "middle_room":  { "x": 5, "y": 0, "w": 4, "h": 4 },
+    "helen_room":   { "x": 9, "y": 0, "w": 4, "h": 4 },
+    "corridor":     { "x": 0, "y": 4, "w": 13, "h": 2 },
+    "lawn":         { "x": 0, "y": -3, "w": 13, "h": 2 }
+  },
+  "objects": {
+    "ventilator":    { "x": 5.0, "y": 1.0 },
+    "bell_rope":     { "x": 5.4, "y": 1.2 },
+    "bed_middle":    { "x": 6.0, "y": 1.5 },
+    "chair_roylott": { "x": 4.4, "y": 1.0 },
+    "safe":          { "x": 1.0, "y": 0.8 },
+    "lantern":       { "x": 2.5, "y": 2.0 },
+    "door_roylott":  { "x": 2.5, "y": 4.0 },
+    "door_middle":   { "x": 7.0, "y": 4.0 },
+    "door_helen":    { "x": 11.0, "y": 4.0 }
+  },
+  "spots": {
+    "roylott_room": { "x": 2.5, "y": 2.0 },
+    "middle_room":  { "x": 7.0, "y": 2.0 },
+    "helen_room":   { "x": 11.0, "y": 2.0 },
+    "corridor":     { "x": 7.0, "y": 5.0 },
+    "lawn":         { "x": 6.5, "y": -2.0 }
+  },
+  "actor_colors": { "julia": "#e8c07a", "helen": "#9ad1e0", "roylott": "#b04a3a", "adder": "#c8b030", "gipsies": "#888888" }
+}
