@@ -194,9 +194,10 @@ func _draw() -> void:
 	for id in order:
 		_draw_room(id, layout.rooms[id], rooms.get(id, {}))
 	var visible_objects: Array = frame.get("objects", layout.objects.keys())
-	for oid in layout.objects:
-		if not oid.begins_with("door_") and visible_objects.has(oid):
-			_draw_object(oid, layout.objects[oid])
+	var shown: Array = layout.objects.keys().filter(func(oid): return not oid.begins_with("door_") and visible_objects.has(oid))
+	shown.sort_custom(func(a, b): return layout.objects[a].x + layout.objects[a].y < layout.objects[b].x + layout.objects[b].y)
+	for oid in shown:
+		_draw_object(oid, layout.objects[oid])
 	for oid in frame.get("marks", {}):
 		if layout.objects.has(oid):
 			_draw_mark(layout.objects[oid], frame.marks[oid], frame.get("selected", "") == oid)
@@ -243,9 +244,31 @@ func _fs(base: int) -> int:
 
 func _draw_object(oid: String, o: Dictionary) -> void:
 	var s := iso(Vector2(o.x, o.y))
-	draw_circle(s, _k * 0.06, Color("#3a2f25"))
-	draw_string(_font, s + Vector2(_k * 0.08, -_k * 0.02), oid.replace("_", " ").replace(" middle", "").replace(" roylott", ""),
+	var parts: Array = o.get("parts", [])
+	if parts.is_empty():
+		draw_circle(s, _k * 0.06, Color("#3a2f25"))
+	for p in parts:
+		_draw_box(Vector2(o.x + p[0], o.y + p[1]), Vector3(p[2], p[3], p[4]), p[5], Color(p[6]))
+	draw_string(_font, s + Vector2(_k * 0.08, _k * 0.12), oid.replace("_", " ").replace(" middle", "").replace(" roylott", ""),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(14), Color(1, 1, 1, 0.5))
+
+
+## An upright box centered on tile c: w along x, d along y, h tall, its
+## bottom z above the floor. Draws the top and the two faces toward the viewer.
+func _draw_box(c: Vector2, size3: Vector3, z: float, col: Color) -> void:
+	var up := Vector2(0, -_k * 0.5)
+	var x0 := c.x - size3.x * 0.5
+	var x1 := c.x + size3.x * 0.5
+	var y0 := c.y - size3.y * 0.5
+	var y1 := c.y + size3.y * 0.5
+	var lo := up * z
+	var hi := up * (z + size3.z)
+	var p := func(x, y, h): return iso(Vector2(x, y)) + h
+	draw_colored_polygon(PackedVector2Array([p.call(x0, y1, lo), p.call(x1, y1, lo), p.call(x1, y1, hi), p.call(x0, y1, hi)]), col.darkened(0.25))
+	draw_colored_polygon(PackedVector2Array([p.call(x1, y0, lo), p.call(x1, y1, lo), p.call(x1, y1, hi), p.call(x1, y0, hi)]), col.darkened(0.45))
+	var top := PackedVector2Array([p.call(x0, y0, hi), p.call(x1, y0, hi), p.call(x1, y1, hi), p.call(x0, y1, hi)])
+	draw_colored_polygon(top, col)
+	draw_polyline(top + PackedVector2Array([top[0]]), Color(0, 0, 0, 0.35), 1.0, true)
 
 
 func _draw_mark(o: Dictionary, mark: String, selected: bool) -> void:
