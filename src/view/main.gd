@@ -30,7 +30,7 @@ var deduction
 var layout: Dictionary = {}
 
 var mode := "brief"   # one of MODES, or "explain"
-var steps: Array = [] # brief: pages; truth: event indices; testimony: claim dicts; investigate: room ids
+var steps: Array = [] # brief: the scene; truth: event indices; testimony: claim dicts; investigate: room ids
 var step := 0
 var playing := false
 var _play_t := 0.0
@@ -176,7 +176,7 @@ func _set_mode(m: String) -> void:
 	_notes_open = false
 	selected = ""
 	if mode == "brief":
-		steps = data.raw.get("briefing", []).duplicate()
+		steps = [data.raw.get("briefing", {})]
 	elif mode == "truth":
 		for i in timeline.size():
 			steps.append(i)
@@ -195,7 +195,8 @@ func _set_mode(m: String) -> void:
 	mode_prev.disabled = at == 0
 	mode_next.disabled = at == MODES.size() - 1
 	var searching := mode == "investigate"
-	slider.visible = mode in ["brief", "truth", "testimony", "explain"]
+	slider.visible = mode in ["truth", "testimony", "explain"]
+	prev_btn.get_parent().visible = mode != "brief"
 	prev_btn.text = "< Room" if searching else "< Prev"
 	next_btn.text = "Room >" if searching else "Next >"
 	play_btn.text = "Play"
@@ -290,23 +291,17 @@ func _layout_for_mode() -> void:
 
 # --- frames ---------------------------------------------------------------
 
-## The client's story: the house as it stands, no people, nothing given away.
+## Arriving at the scene: the house as the night left it. Anything the
+## case lists under "hide" (the culprit's tools) stays off the map.
 func _show_brief(page: Dictionary) -> void:
-	var focus: Array = page.get("focus", [])
-	var start = timeline.state_before(0)
-	var f := { "rooms": {}, "doors": {}, "actors": [], "bubbles": [], "objects": [] }
-	var around: Array = focus if not focus.is_empty() else layout.spots.keys()
-	var c := Vector2.ZERO
-	for id in around:
-		c += _spot(id)
-	f.center = c / around.size()
-	for id in layout.rooms:
-		f.rooms[id] = { "lit": true, "known": true, "focus": focus.has(id), "name": data.locations[id].name }
-	for oid in start.objects:
-		if start.objects[oid].has("door") and oid.begins_with("door_"):
-			f.doors[oid] = start.objects[oid].door
-	title.text = "%s  %d/%d" % [data.raw.meta.title, step + 1, steps.size()]
-	caption.text = page.text
+	var last: int = timeline.size() - 1
+	var f := _base_frame(timeline.event(last), timeline.state_after(last), page.get("focus", []), "")
+	var hide: Array = page.get("hide", [])
+	f.actors = f.actors.filter(func(a): return not hide.has(a.id))
+	for id in f.rooms:
+		f.rooms[id].lit = true  # the police bring lamps
+	title.text = data.raw.meta.title
+	caption.text = page.get("text", "")
 	map.set_frame(f)
 
 

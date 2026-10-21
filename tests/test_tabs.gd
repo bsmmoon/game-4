@@ -8,13 +8,12 @@ func _initialize():
 	root.add_child(m)
 	for i in 30:
 		await process_frame
-	_check(m.mode == "brief" and m.steps.size() == 6, "opens on the briefing")
-	_check(m.caption.text.contains("Helen Stoner"), "briefing introduces the client")
+	_check(m.mode == "brief" and m.steps.size() == 1, "opens on the scene")
+	_check(m.caption.text.contains("Julia Stoner"), "scene names the victim")
+	var ids: Array = m.map.frame.actors.map(func(a): return a.id)
+	_check(ids.has("julia") and ids.has("helen") and not ids.has("adder"), "scene shows the people, hides the adder %s" % [ids])
 	_check(m.mode_prev.disabled and not m.mode_next.disabled, "first tab: back disabled")
 	await _shot(m, "brief_0")
-	m._go(1)
-	m._go(1)
-	await _shot(m, "brief_2")
 	m.mode_prev.pressed.emit()
 	_check(m.mode == "brief", "back from the first tab does not wrap")
 	var seen := []
