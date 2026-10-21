@@ -17,6 +17,7 @@ var frame: Dictionary = {}
 
 const ZOOM := 1.6      # camera zoom over "whole house fits the width"
 const ZOOM_MAX := 4.0  # player zoom on top of ZOOM
+const WALL_H := 1.0    # wall height in tiles
 
 var zoom := 1.0        # player zoom: pinch, wheel or +/- buttons
 var _pan := Vector2.ZERO        # player pan, in raw iso units from the center
@@ -231,10 +232,28 @@ func _draw_room(id: String, r: Dictionary, st: Dictionary) -> void:
 	draw_colored_polygon(pts, col)
 	var edge := Color("#ffe08a") if st.get("focus", false) else Color(0, 0, 0, 0.6)
 	draw_polyline(pts + PackedVector2Array([pts[0]]), edge, 3.0 if st.get("focus", false) else 1.5, true)
+	if id != "lawn":
+		_draw_walls(r, col)
 	if st.get("known", true):
 		var name: String = st.get("name", id)
 		var at := iso(Vector2(r.x + 0.3, r.y + 0.3)) + Vector2(-_k * 0.4, _k * 0.15)
 		draw_string(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(17), Color(1, 1, 1, 0.55))
+
+
+## Cutaway walls: only the back two (north and west), so nothing in the room
+## is hidden. open_north skips the north one (the corridor's is the rooms' front).
+func _draw_walls(r: Dictionary, floor_col: Color) -> void:
+	var hi := Vector2(0, -_k * 0.5 * WALL_H)
+	var wall := Color("#8c7a5e").lerp(floor_col, 0.3)
+	var nw := iso(Vector2(r.x, r.y))
+	var sw := iso(Vector2(r.x, r.y + r.h))
+	var ne := iso(Vector2(r.x + r.w, r.y))
+	draw_colored_polygon(PackedVector2Array([sw, nw, nw + hi, sw + hi]), wall.darkened(0.2))
+	if not r.get("open_north", false):
+		draw_colored_polygon(PackedVector2Array([nw, ne, ne + hi, nw + hi]), wall)
+		draw_line(nw + hi, ne + hi, Color(0, 0, 0, 0.5), 2.0, true)
+	draw_line(sw + hi, nw + hi, Color(0, 0, 0, 0.5), 2.0, true)
+	draw_line(nw, nw + hi, Color(0, 0, 0, 0.35), 1.0, true)
 
 
 ## Label size for the current zoom: grows with it, but less than the map.

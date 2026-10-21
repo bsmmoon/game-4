@@ -1,14 +1,14 @@
 {
-  "_comment": "Display-only data for the isometric view. Tile coordinates, not game logic. Swap or delete freely. parts: boxes [dx, dy, w, d, h, z, color], centered on the object spot, sizes in tiles.",
+  "_comment": "Display-only data for the isometric view. Tile coordinates, not game logic. Swap or delete freely. parts: boxes [dx, dy, w, d, h, z, color], centered on the object spot, sizes in tiles. open_north: no back wall on that side.",
   "rooms": {
     "roylott_room": { "x": 0, "y": 0, "w": 5, "h": 4 },
     "middle_room":  { "x": 5, "y": 0, "w": 4, "h": 4 },
     "helen_room":   { "x": 9, "y": 0, "w": 4, "h": 4 },
-    "corridor":     { "x": 0, "y": 4, "w": 13, "h": 2 },
+    "corridor":     { "x": 0, "y": 4, "w": 13, "h": 2, "open_north": true },
     "lawn":         { "x": 0, "y": -3, "w": 13, "h": 2 }
   },
   "objects": {
-    "ventilator":    { "x": 5.1, "y": 0.5, "parts": [[0, 0, 0.12, 0.5, 0.25, 0.9, "#3b3b3b"]] },
+    "ventilator":    { "x": 5.06, "y": 0.5, "parts": [[0, 0, 0.12, 0.5, 0.25, 0.6, "#3b3b3b"]] },
     "bell_rope":     { "x": 5.9, "y": 1.3, "parts": [[0, 0, 0.06, 0.06, 1.3, 0.0, "#b0463c"], [0, 0, 0.14, 0.14, 0.12, 0.0, "#d9b04a"]] },
     "bed_middle":    { "x": 7.3, "y": 2.6, "parts": [[0, 0, 1.0, 1.8, 0.35, 0, "#6b4a33"], [0, 0.15, 0.92, 1.4, 0.12, 0.35, "#d9d2c3"], [0, -0.7, 0.8, 0.3, 0.1, 0.35, "#f2eee4"]] },
     "chair_roylott": { "x": 4.3, "y": 1.6, "parts": [[0, 0, 0.5, 0.5, 0.35, 0, "#7a5236"], [-0.22, 0, 0.08, 0.5, 0.45, 0.35, "#5b3c27"]] },
@@ -17,7 +17,7 @@
     "saucer":        { "x": 1.5, "y": 0.6, "parts": [[0, 0, 0.3, 0.3, 0.04, 0, "#f4f1e8"], [0, 0, 0.2, 0.2, 0.02, 0.04, "#fffdf6"]] },
     "fauna_book":    { "x": 0.6, "y": 2.8, "parts": [[0, 0, 0.45, 0.35, 0.08, 0, "#2e5a3a"], [0, 0, 0.4, 0.3, 0.02, 0.08, "#ece3c8"]] },
     "dog_lash":      { "x": 3.2, "y": 2.8, "parts": [[0, 0, 0.6, 0.06, 0.03, 0, "#4a3020"], [0.25, 0.1, 0.16, 0.16, 0.03, 0, "#4a3020"]] },
-    "shutter_middle": { "x": 8.0, "y": 0.2, "parts": [[0, 0, 1.0, 0.1, 0.8, 0.3, "#4d6b80"], [0, 0, 1.05, 0.12, 0.06, 0.65, "#2f2f2f"]] },
+    "shutter_middle": { "x": 8.0, "y": 0.06, "parts": [[0, 0, 1.0, 0.1, 0.6, 0.25, "#4d6b80"], [0, 0, 1.05, 0.12, 0.06, 0.82, "#2f2f2f"]] },
     "door_roylott":  { "x": 2.5, "y": 4.0 },
     "door_middle":   { "x": 7.0, "y": 4.0 },
     "door_helen":    { "x": 11.0, "y": 4.0 }
