@@ -18,6 +18,9 @@ var frame: Dictionary = {}
 const ZOOM := 1.6      # camera zoom over "whole house fits the width"
 const ZOOM_MAX := 4.0  # player zoom on top of ZOOM
 const WALL_H := 1.0    # wall height in tiles
+const LOW_H := 0.25    # cut-down walls: room fronts, and walls in front of the focus
+const DOOR_W := 0.8    # door gap, tiles
+const DOOR_H := 0.85
 
 var zoom := 1.0        # player zoom: pinch, wheel or +/- buttons
 var _pan := Vector2.ZERO        # player pan, in raw iso units from the center
@@ -193,18 +196,32 @@ func _draw() -> void:
 	var order: Array = layout.rooms.keys()
 	order.sort_custom(func(a, b): return layout.rooms[a].x + layout.rooms[a].y < layout.rooms[b].x + layout.rooms[b].y)
 	for id in order:
-		_draw_room(id, layout.rooms[id], rooms.get(id, {}))
+		_draw_floor(id, layout.rooms[id], rooms.get(id, {}))
 	var visible_objects: Array = frame.get("objects", layout.objects.keys())
 	var shown: Array = layout.objects.keys().filter(func(oid): return not oid.begins_with("door_") and visible_objects.has(oid))
 	shown.sort_custom(func(a, b): return layout.objects[a].x + layout.objects[a].y < layout.objects[b].x + layout.objects[b].y)
+	var by_room := {}
 	for oid in shown:
+		var rid := _room_of(Vector2(layout.objects[oid].x, layout.objects[oid].y))
+		by_room[rid] = by_room.get(rid, []) + [oid]
+	# Back to front, room by room: back walls, furniture, front walls. A room's
+	# walls then cover whatever stands behind them in the rooms drawn earlier.
+	var focus: Array = order.filter(func(id): return rooms.get(id, {}).get("focus", false))
+	for id in order:
+		var col := _room_col(id, rooms.get(id, {}))
+		if id != "lawn":
+			_draw_back_walls(layout.rooms[id], col, focus)
+		for oid in by_room.get(id, []):
+			_draw_object(oid, layout.objects[oid])
+		if id != "lawn":
+			_draw_front_walls(layout.rooms[id], col)
+	for oid in by_room.get("", []):
 		_draw_object(oid, layout.objects[oid])
+	for id in order:
+		_draw_room_label(id, layout.rooms[id], rooms.get(id, {}))
 	for oid in frame.get("marks", {}):
 		if layout.objects.has(oid):
 			_draw_mark(layout.objects[oid], frame.marks[oid], frame.get("selected", "") == oid)
-	for oid in frame.get("doors", {}):
-		if layout.objects.has(oid):
-			_draw_door(layout.objects[oid], frame.doors[oid])
 	var actors: Array = frame.get("actors", []).duplicate()
 	actors.sort_custom(func(a, b): return _pos(a).x + _pos(a).y < _pos(b).x + _pos(b).y)
 	for a in actors:
@@ -220,40 +237,122 @@ func _pos(a: Dictionary) -> Vector2:
 	return _shown.get(a.id, a.tile)
 
 
-func _draw_room(id: String, r: Dictionary, st: Dictionary) -> void:
-	var pts := PackedVector2Array([iso(Vector2(r.x, r.y)), iso(Vector2(r.x + r.w, r.y)),
-		iso(Vector2(r.x + r.w, r.y + r.h)), iso(Vector2(r.x, r.y + r.h))])
+func _room_col(id: String, st: Dictionary) -> Color:
 	var base := Color("#c9b48a") if id != "lawn" else Color("#4f7a45")
 	if id == "corridor":
 		base = Color("#a89a80")
 	var col := base if st.get("lit", false) else base.darkened(0.65)
 	if not st.get("known", true):
 		col = col.darkened(0.7)
-	draw_colored_polygon(pts, col)
+	return col
+
+
+func _room_of(t: Vector2) -> String:
+	for id in layout.rooms:
+		var r: Dictionary = layout.rooms[id]
+		if id != "lawn" and t.x >= r.x and t.x < r.x + r.w and t.y >= r.y and t.y < r.y + r.h:
+			return id
+	return ""
+
+
+func _draw_floor(id: String, r: Dictionary, st: Dictionary) -> void:
+	var pts := PackedVector2Array([iso(Vector2(r.x, r.y)), iso(Vector2(r.x + r.w, r.y)),
+		iso(Vector2(r.x + r.w, r.y + r.h)), iso(Vector2(r.x, r.y + r.h))])
+	draw_colored_polygon(pts, _room_col(id, st))
 	var edge := Color("#ffe08a") if st.get("focus", false) else Color(0, 0, 0, 0.6)
 	draw_polyline(pts + PackedVector2Array([pts[0]]), edge, 3.0 if st.get("focus", false) else 1.5, true)
-	if id != "lawn":
-		_draw_walls(r, col)
+
+
+func _draw_room_label(id: String, r: Dictionary, st: Dictionary) -> void:
 	if st.get("known", true):
 		var name: String = st.get("name", id)
 		var at := iso(Vector2(r.x + 0.3, r.y + 0.3)) + Vector2(-_k * 0.4, _k * 0.15)
 		draw_string(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(17), Color(1, 1, 1, 0.55))
 
 
-## Cutaway walls: only the back two (north and west), so nothing in the room
-## is hidden. open_north skips the north one (the corridor's is the rooms' front).
-func _draw_walls(r: Dictionary, floor_col: Color) -> void:
-	var hi := Vector2(0, -_k * 0.5 * WALL_H)
+## Back walls (west, and north unless open_north) stand full height, except
+## where one is the front of a room in focus: then it is cut low and the rest
+## is a ghost, so the focus stays in view and wall fittings keep their place.
+func _draw_back_walls(r: Dictionary, floor_col: Color, focus: Array) -> void:
 	var wall := Color("#8c7a5e").lerp(floor_col, 0.3)
-	var nw := iso(Vector2(r.x, r.y))
-	var sw := iso(Vector2(r.x, r.y + r.h))
-	var ne := iso(Vector2(r.x + r.w, r.y))
-	draw_colored_polygon(PackedVector2Array([sw, nw, nw + hi, sw + hi]), wall.darkened(0.2))
+	var nw := Vector2(r.x, r.y)
+	var sw := Vector2(r.x, r.y + r.h)
+	var ne := Vector2(r.x + r.w, r.y)
+	var west_low := focus.any(func(f): return _fronts(layout.rooms[f], "x", r.x, r.y, r.y + r.h))
+	_draw_wall(sw, nw, wall.darkened(0.2), LOW_H if west_low else WALL_H, west_low)
 	if not r.get("open_north", false):
-		draw_colored_polygon(PackedVector2Array([nw, ne, ne + hi, nw + hi]), wall)
-		draw_line(nw + hi, ne + hi, Color(0, 0, 0, 0.5), 2.0, true)
-	draw_line(sw + hi, nw + hi, Color(0, 0, 0, 0.5), 2.0, true)
-	draw_line(nw, nw + hi, Color(0, 0, 0, 0.35), 1.0, true)
+		var north_low := focus.any(func(f): return _fronts(layout.rooms[f], "y", r.y, r.x, r.x + r.w))
+		_draw_wall(nw, ne, wall, LOW_H if north_low else WALL_H, north_low)
+
+
+## Does room f's front (east edge for "x", south edge for "y") lie on the line
+## axis = at, overlapping the span from a to b?
+func _fronts(f: Dictionary, axis: String, at: float, a: float, b: float) -> bool:
+	if axis == "x":
+		return f.x + f.w == at and f.y < b and f.y + f.h > a
+	return f.y + f.h == at and f.x < b and f.x + f.w > a
+
+
+## Front walls (south, east) are always cut low, with gaps for doors. Skipped
+## where a neighbor's back wall already stands on that line.
+func _draw_front_walls(r: Dictionary, floor_col: Color) -> void:
+	var wall := Color("#8c7a5e").lerp(floor_col, 0.3)
+	var x1: float = r.x + r.w
+	var y1: float = r.y + r.h
+	var south_taken := false
+	var east_taken := false
+	for id in layout.rooms:
+		var o: Dictionary = layout.rooms[id]
+		if id == "lawn":
+			continue
+		if not o.get("open_north", false) and o.y == y1 and o.x < x1 and o.x + o.w > r.x:
+			south_taken = true
+		if o.x == x1 and o.y < y1 and o.y + o.h > r.y:
+			east_taken = true
+	if not south_taken:
+		var doors: Array = layout.objects.keys().filter(func(oid): return _on_line(oid, y1, r.x, x1))
+		doors.sort_custom(func(a, b): return layout.objects[a].x < layout.objects[b].x)
+		var x: float = r.x
+		for oid in doors:
+			var dx: float = layout.objects[oid].x
+			_draw_wall(Vector2(x, y1), Vector2(dx - DOOR_W * 0.5, y1), wall, LOW_H)
+			_draw_door(Vector2(dx - DOOR_W * 0.5, y1), frame.get("doors", {}).get(oid, "open"))
+			x = dx + DOOR_W * 0.5
+		_draw_wall(Vector2(x, y1), Vector2(x1, y1), wall, LOW_H)
+	if not east_taken:
+		_draw_wall(Vector2(x1, r.y), Vector2(x1, y1), wall.darkened(0.2), LOW_H)
+
+
+func _on_line(oid: String, y: float, x0: float, x1: float) -> bool:
+	var o: Dictionary = layout.objects[oid]
+	return oid.begins_with("door_") and o.y == y and o.x > x0 and o.x < x1
+
+
+## A wall from tile a to tile b, h tiles tall. A ghost wall shows the rest of
+## its full height faintly.
+func _draw_wall(a: Vector2, b: Vector2, col: Color, h: float, ghost := false) -> void:
+	var up := Vector2(0, -_k * 0.5)
+	var pa := iso(a)
+	var pb := iso(b)
+	if ghost:
+		draw_colored_polygon(PackedVector2Array([pa + up * h, pb + up * h, pb + up * WALL_H, pa + up * WALL_H]), Color(col, 0.15))
+	draw_colored_polygon(PackedVector2Array([pa, pb, pb + up * h, pa + up * h]), col)
+	draw_line(pa + up * h, pb + up * h, Color(0, 0, 0, 0.5), 2.0, true)
+
+
+## A door hinged at tile `hinge` on a south wall. Shut, it fills the gap in
+## the state's color; open, it swings back into the room.
+func _draw_door(hinge: Vector2, state: String) -> void:
+	var up := Vector2(0, -_k * 0.5 * DOOR_H)
+	var wood := Color("#6b4a33").lerp(DOOR_COLORS.get(state, Color.GRAY), 0.45)
+	var far := hinge + (Vector2(0, -DOOR_W) if state == "open" else Vector2(DOOR_W, 0))
+	var pa := iso(hinge)
+	var pb := iso(far)
+	var leaf := PackedVector2Array([pa, pb, pb + up, pa + up])
+	draw_colored_polygon(leaf, wood if state != "open" else wood.darkened(0.25))
+	draw_polyline(leaf + PackedVector2Array([leaf[0]]), Color(0, 0, 0, 0.5), 1.5, true)
+	var knob := pa.lerp(pb, 0.8) + up * 0.5
+	draw_circle(knob, max(2.0, _k * 0.025), Color("#d9b04a"))
 
 
 ## Label size for the current zoom: grows with it, but less than the map.
@@ -299,12 +398,6 @@ func _draw_mark(o: Dictionary, mark: String, selected: bool) -> void:
 	draw_arc(s, r, 0, TAU, 24, col, 3.0, true)
 	var glyph := "ok" if mark == "done" else "?"
 	draw_string(_font, s + Vector2(-r, r * 0.35), glyph, HORIZONTAL_ALIGNMENT_CENTER, r * 2, int(r), col)
-
-
-func _draw_door(o: Dictionary, state: String) -> void:
-	var s := iso(Vector2(o.x, o.y))
-	var w := _k * 0.22
-	draw_rect(Rect2(s - Vector2(w, w * 0.35), Vector2(w * 2, w * 0.7)), DOOR_COLORS.get(state, Color.GRAY))
 
 
 func _draw_puppet(a: Dictionary) -> void:
