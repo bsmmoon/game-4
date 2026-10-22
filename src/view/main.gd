@@ -60,6 +60,7 @@ func _ready() -> void:
 	perception = Perception.new(data)
 	testimony = Testimony.new(timeline, perception)
 	investigation = Investigation.new(data)
+	_inspected.clear()
 	deduction = Deduction.new(data, investigation)
 	_build_ui()
 	_set_mode("brief")
@@ -105,6 +106,7 @@ func _build_ui() -> void:
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map.swiped.connect(_go)
 	map.tapped_object.connect(_inspect)
+	map.tapped_room.connect(_describe_room)
 	box.add_child(map)
 
 	notebook = _label(21)
@@ -401,6 +403,9 @@ func _show_room(room: String) -> void:
 			f.doors[oid] = last.objects[oid].door
 	for oid in investigation.inspectables():
 		f.marks[oid] = "done" if investigation.exhausted(oid) else "todo"
+	f.labels = {}
+	for oid in _inspected:
+		f.labels[oid] = _object_name(oid)
 	if selected != "" and _bubble != "":
 		f.bubbles.append({ "tile": Vector2(layout.objects[selected].x, layout.objects[selected].y),
 			"text": _bubble, "kind": "thought" })
@@ -419,15 +424,27 @@ func _show_room(room: String) -> void:
 
 
 var _bubble := ""
+var _inspected := {}  # oid -> true: objects the player has looked at, named on the map
 
 
 func _inspect(oid: String) -> void:
 	if mode != "investigate":
 		return
 	selected = oid
+	_inspected[oid] = true
 	var results: Array = investigation.inspect(oid)
 	_bubble = "!" if results.any(func(r): return r.new) else "..."
 	_result = _results_text(_object_name(oid).capitalize(), results)
+	_show_room(_room_shown)
+
+
+func _describe_room(id: String) -> void:
+	if mode != "investigate" or not data.locations.has(id):
+		return
+	selected = ""
+	_bubble = ""
+	var loc: Dictionary = data.locations[id]
+	_result = "%s\n%s" % [loc.name, loc.get("description", "")]
 	_show_room(_room_shown)
 
 

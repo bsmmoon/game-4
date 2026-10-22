@@ -45,6 +45,7 @@ what the officer sees, and what the player has to solve.
 ### `locations`
 ```json
 { "id": "middle_room", "name": "Julia's room", "scene": "stoke_moran",
+  "description": "A homely little room with a low ceiling...",
   "light": "dark",
   "connections": [
     { "to": "corridor", "via": "door_middle", "kind": "door" },
@@ -52,6 +53,8 @@ what the officer sees, and what the player has to solve.
       "passes": ["sound", "smell", "light"], "traversable_by": ["small_animal"] }
   ] }
 ```
+`description` is shown when the player taps the room. Flavor only: anything the player must notice belongs in an object's inspect results, where it can be a clue.
+
 `passes` tells the perception system what crosses the connection. A wall passes loud sound only. A closed door passes sound but not sight.
 
 ### `objects`

@@ -11,12 +11,14 @@
   "verbs": ["move", "lock", "unlock", "open", "sleep", "wake", "light", "climb", "release", "descend", "bite", "strike_match", "scream", "whistle", "shut", "speak", "point", "collapse"],
   "locations": [
     { "id": "roylott_room", "name": "Roylott's room", "light": "dark",
+      "description": "Larger than the other bedrooms, and plainly furnished: a camp bed, a shelf of books, mostly technical, an armchair, a plain wooden chair and a round table.",
       "connections": [
         { "to": "corridor", "via": "door_roylott", "kind": "door" },
         { "to": "middle_room", "via": "ventilator", "kind": "vent", "passes": ["sound", "smell", "light"], "traversable_by": ["small_animal"] },
         { "to": "lawn", "via": "window_roylott", "kind": "window" }
       ] },
     { "id": "middle_room", "name": "Julia's room", "light": "dark",
+      "description": "A homely little room with a low ceiling and a wide fireplace. A chest of drawers, a narrow bed with a white counterpane and a dressing table. The floor and the walls are brown oak.",
       "connections": [
         { "to": "corridor", "via": "door_middle", "kind": "door" },
         { "to": "roylott_room", "via": "ventilator", "kind": "vent", "passes": ["sound", "smell", "light"], "traversable_by": ["small_animal"] },
@@ -24,18 +26,21 @@
         { "to": "lawn", "via": "shutter_middle", "kind": "window" }
       ] },
     { "id": "helen_room", "name": "Helen's room", "light": "dark",
+      "description": "Helen's bedroom, the last of the three in this wing.",
       "connections": [
         { "to": "corridor", "via": "door_helen", "kind": "door" },
         { "to": "middle_room", "via": null, "kind": "wall" },
         { "to": "lawn", "via": "window_helen", "kind": "window" }
       ] },
     { "id": "corridor", "name": "Corridor", "light": "lit", "note": "Lamp light is a prototype assumption, not checked against the source.",
+      "description": "The corridor that the three bedrooms open into.",
       "connections": [
         { "to": "roylott_room", "via": "door_roylott", "kind": "door" },
         { "to": "middle_room", "via": "door_middle", "kind": "door" },
         { "to": "helen_room", "via": "door_helen", "kind": "door" }
       ] },
     { "id": "lawn", "name": "Lawn", "light": "dark", "outdoor": true,
+      "description": "The lawn outside the bedroom windows.",
       "connections": [
         { "to": "roylott_room", "via": "window_roylott", "kind": "window" },
         { "to": "middle_room", "via": "shutter_middle", "kind": "window" },

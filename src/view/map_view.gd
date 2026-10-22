@@ -4,6 +4,7 @@ extends Control
 
 signal swiped(dir: int)
 signal tapped_object(oid: String)
+signal tapped_room(id: String)
 
 const DOOR_COLORS := { "open": Color("#6fbf73"), "closed": Color("#d9a441"), "locked": Color("#d0503c") }
 const BUBBLE_COLORS := { "sound": Color("#fff6d8"), "speech": Color("#ffffff"), "light": Color("#fff3a0"), "smell": Color("#e2d6f5"), "thought": Color("#d8d8e8") }
@@ -12,7 +13,8 @@ var layout: Dictionary = {}
 ## frame = { rooms: {id: {lit, known, focus}}, doors: {id: state},
 ##           actors: [{id, tile, pose, alpha, label}], bubbles: [{tile, text, kind}],
 ##           objects: [ids to draw] (optional), center: tile the camera follows,
-##           marks: {oid: "todo"|"done"} tappable objects (optional), selected: oid }
+##           marks: {oid: "todo"|"done"} tappable objects (optional), selected: oid,
+##           labels: {oid: name} object names to show (optional, none by default) }
 var frame: Dictionary = {}
 
 const ZOOM := 1.6      # camera zoom over "whole house fits the width"
@@ -145,6 +147,10 @@ func _gui_input(ev: InputEvent) -> void:
 				var oid := object_at(ev.position)
 				if oid != "":
 					tapped_object.emit(oid)
+				else:
+					var rid := room_at(ev.position)
+					if rid != "":
+						tapped_room.emit(rid)
 
 
 ## Nearest tappable object to a point (local coords), within a finger's reach.
@@ -158,6 +164,18 @@ func object_at(p: Vector2) -> String:
 				best_d = d
 				best = oid
 	return best
+
+
+## Room under a point (local coords), or "".
+func room_at(p: Vector2) -> String:
+	var raw := (p - _origin) / _k
+	var t := Vector2(raw.x + 2.0 * raw.y, 2.0 * raw.y - raw.x)
+	var rid := _room_of(t)
+	if rid == "" and layout.rooms.has("lawn"):
+		var r: Dictionary = layout.rooms.lawn
+		if t.x >= r.x and t.x < r.x + r.w and t.y >= r.y and t.y < r.y + r.h:
+			return "lawn"
+	return rid
 
 
 # --- projection -----------------------------------------------------------
@@ -217,8 +235,6 @@ func _draw() -> void:
 			_draw_front_walls(layout.rooms[id], col)
 	for oid in by_room.get("", []):
 		_draw_object(oid, layout.objects[oid])
-	for id in order:
-		_draw_room_label(id, layout.rooms[id], rooms.get(id, {}))
 	for oid in frame.get("marks", {}):
 		if layout.objects.has(oid):
 			_draw_mark(layout.objects[oid], frame.marks[oid], frame.get("selected", "") == oid)
@@ -261,13 +277,6 @@ func _draw_floor(id: String, r: Dictionary, st: Dictionary) -> void:
 	draw_colored_polygon(pts, _room_col(id, st))
 	var edge := Color("#ffe08a") if st.get("focus", false) else Color(0, 0, 0, 0.6)
 	draw_polyline(pts + PackedVector2Array([pts[0]]), edge, 3.0 if st.get("focus", false) else 1.5, true)
-
-
-func _draw_room_label(id: String, r: Dictionary, st: Dictionary) -> void:
-	if st.get("known", true):
-		var name: String = st.get("name", id)
-		var at := iso(Vector2(r.x + 0.3, r.y + 0.3)) + Vector2(-_k * 0.4, _k * 0.15)
-		draw_string(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(17), Color(1, 1, 1, 0.55))
 
 
 ## Back walls (west, and north unless open_north) stand full height, except
@@ -367,8 +376,9 @@ func _draw_object(oid: String, o: Dictionary) -> void:
 		draw_circle(s, _k * 0.06, Color("#3a2f25"))
 	for p in parts:
 		_draw_box(Vector2(o.x + p[0], o.y + p[1]), Vector3(p[2], p[3], p[4]), p[5], Color(p[6]))
-	draw_string(_font, s + Vector2(_k * 0.08, _k * 0.12), oid.replace("_", " ").replace(" middle", "").replace(" roylott", ""),
-		HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(14), Color(1, 1, 1, 0.5))
+	var labels: Dictionary = frame.get("labels", {})
+	if labels.has(oid):
+		draw_string(_font, s + Vector2(_k * 0.08, _k * 0.12), labels[oid], HORIZONTAL_ALIGNMENT_LEFT, -1, _fs(14), Color(1, 1, 1, 0.6))
 
 
 ## An upright box centered on tile c: w along x, d along y, h tall, its
